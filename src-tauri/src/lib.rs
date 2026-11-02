@@ -23,10 +23,30 @@ fn in_app(url: &Url) -> bool {
     url.scheme() == "https" && url.host_str().map_or(false, |h| SPOTIFY_HOSTS.contains(&h))
 }
 
-fn open_in_browser(app: &AppHandle, url: &Url) {
-    if matches!(url.scheme(), "http" | "https" | "mailto") {
-        let _ = app.opener().open_url(url.as_str(), None::<&str>);
+// Logboek in %APPDATA%\io.github.nbroers05.dashboard\logspp.log (alleen adressen en of openen lukte)
+fn log(app: &AppHandle, line: &str) {
+    use std::io::Write;
+    if let Ok(dir) = app.path().app_log_dir() {
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("app.log")) {
+            let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+            let _ = writeln!(f, "{t} {line}");
+        }
     }
+}
+
+// Op een eigen thread: vanuit de WebView2-callback zelf opende Windows de link niet.
+fn open_in_browser(app: &AppHandle, url: &Url) {
+    if !matches!(url.scheme(), "http" | "https" | "mailto") {
+        log(app, &format!("niet geopend (schema): {url}"));
+        return;
+    }
+    let app = app.clone();
+    let url = url.to_string();
+    std::thread::spawn(move || {
+        let res = app.opener().open_url(url.as_str(), None::<&str>);
+        log(&app, &format!("browser {url}: {}", match res { Ok(_) => "ok".to_string(), Err(e) => format!("fout {e}") }));
+    });
 }
 
 fn show(app: &AppHandle) {
