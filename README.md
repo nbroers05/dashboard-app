@@ -46,7 +46,7 @@ Waarom de hele origin en niet alleen `/Dashboard/`: Tauri vergelijkt de rechten 
 
 De opener-plugin onderschept bewust geen linkklikken (`open_js_links_on_click(false)`): dat zou de site een IPC-recht geven. Links met `target=_blank` lopen via `on_new_window` in `lib.rs`.
 
-**Problemen zoeken**: `%LOCALAPPDATA%\io.github.nbroers05.dashboard\logspp.log` toont elke link die naar de browser ging. In de pagina kijken kan door de app te starten met de omgevingsvariabele `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333` en dan `http://127.0.0.1:9333` (Chrome DevTools-protocol).
+**Problemen zoeken**: `%LOCALAPPDATA%\io.github.nbroers05.dashboard\logs\app.log` toont elke link die naar de browser ging. In de pagina kijken kan door de app te starten met de omgevingsvariabele `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333` en dan `http://127.0.0.1:9333` (Chrome DevTools-protocol).
 
 ## Bestanden
 
