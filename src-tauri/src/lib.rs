@@ -23,7 +23,7 @@ fn in_app(url: &Url) -> bool {
     url.scheme() == "https" && url.host_str().map_or(false, |h| SPOTIFY_HOSTS.contains(&h))
 }
 
-// Logboek in %APPDATA%\io.github.nbroers05.dashboard\logspp.log (alleen adressen en of openen lukte)
+// Logboek in %APPDATA%\io.github.nbroers05.dashboard\logs\app.log (alleen adressen en of openen lukte)
 fn log(app: &AppHandle, line: &str) {
     use std::io::Write;
     if let Ok(dir) = app.path().app_log_dir() {
@@ -77,7 +77,9 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show(app)))
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(state).build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .plugin(tauri_plugin_opener::init())
+        // Niet zelf op linkklikken letten: dat script vraagt via IPC om te openen en de site heeft dat recht niet.
+        // Klikken op target=_blank gaan nu via on_new_window hieronder.
+        .plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())
         .setup(move |app| {
             let handle = app.handle().clone();
             let nav = handle.clone();
