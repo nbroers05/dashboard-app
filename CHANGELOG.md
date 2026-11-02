@@ -4,7 +4,7 @@
 
 - Titelbalk werkte niet: Tauri vergelijkt de rechten van een website alleen op de origin (`https://nbroers05.github.io`), niet op het pad. Het patroon `…/Dashboard/*` paste daardoor nooit en elke vensteropdracht werd geweigerd ("not allowed by ACL"). Nu staat er de origin; binnen die origin laat de app alleen `/Dashboard/` toe.
 - Links met `target=_blank` deden niets: de opener-plugin onderschepte de klik en vroeg via IPC om te openen, wat de site (terecht) niet mag. Dat onderscheppen staat uit; de app vangt het nieuwe venster zelf op en opent het in de standaardbrowser.
-- Links naar andere sites openen nu op een eigen thread in de standaardbrowser, en elke poging komt in `%APPDATA%\io.github.nbroers05.dashboard\logs\app.log`.
+- Links naar andere sites openen nu op een eigen thread in de standaardbrowser, en elke poging komt in `%LOCALAPPDATA%\io.github.nbroers05.dashboard\logs\app.log`.
 
 ## 0.1.0 (2 nov 2026)
 

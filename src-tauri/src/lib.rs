@@ -23,7 +23,7 @@ fn in_app(url: &Url) -> bool {
     url.scheme() == "https" && url.host_str().map_or(false, |h| SPOTIFY_HOSTS.contains(&h))
 }
 
-// Logboek in %APPDATA%\io.github.nbroers05.dashboard\logs\app.log (alleen adressen en of openen lukte)
+// Logboek in %LOCALAPPDATA%\io.github.nbroers05.dashboard\logs\app.log (alleen adressen en of openen lukte)
 fn log(app: &AppHandle, line: &str) {
     use std::io::Write;
     if let Ok(dir) = app.path().app_log_dir() {
