@@ -55,7 +55,7 @@ class MainActivity : Activity() {
             text = "Nog reageren"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
         })
-        root.addView(note("Zet naam en app van chatmeldingen in je planner. Nooit de berichttekst."))
+        root.addView(note("Zet naam, app en het laatste bericht van chatmeldingen in je planner. Het bericht wordt gewist zodra de regel weg is."))
 
         status = TextView(this).apply { setPadding(0, dp(14), 0, dp(4)) }
         root.addView(status)

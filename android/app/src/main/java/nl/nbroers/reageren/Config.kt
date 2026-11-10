@@ -6,12 +6,16 @@ import android.content.Context
 const val SUPABASE_URL = "https://osqcctmvnvsawbjqgjkp.supabase.co"
 const val SUPABASE_KEY = "sb_publishable_XMjRxWBxSsSvDfZJa9cDaw_6RDGtEm0"
 
-class ChatApp(val pkg: String, val label: String, val onByDefault: Boolean)
+/** loose: de app geeft niet altijd aan dat iets een chatbericht is, en stuurt ook meldingen zonder echte afzender. */
+class ChatApp(val pkg: String, val label: String, val onByDefault: Boolean, val loose: Boolean = false)
 
 val CHAT_APPS = listOf(
     ChatApp("com.whatsapp", "WhatsApp", true),
     ChatApp("com.instagram.android", "Instagram", true),
-    ChatApp("com.snapchat.android", "Snapchat", true),
+    ChatApp("com.snapchat.android", "Snapchat", true, loose = true),
+    ChatApp("co.hinge.app", "Hinge", true, loose = true),
+    ChatApp("com.tinder", "Tinder", true, loose = true),
+    ChatApp("com.bumble.app", "Bumble", true, loose = true),
     ChatApp("com.whatsapp.w4b", "WhatsApp Business", false),
     ChatApp("org.telegram.messenger", "Telegram", false),
     ChatApp("org.thoughtcrime.securesms", "Signal", false),
