@@ -100,33 +100,6 @@ internal fun RegenStaafjes(w: Weer) {
     }
 }
 
-// ================= Planner (fase 2) =================
-@Composable
-fun PlannerScherm() {
-    val k = LocalNH.current
-    val context = LocalContext.current
-    val vandaag = LocalDate.now()
-    val kanji = listOf("月", "火", "水", "木", "金", "土", "日")[vandaag.dayOfWeek.value - 1]
-    Scherm {
-        // Titelkaart: de dag als één groot woord, het Japanse teken van de dag in rood over de rand
-        Box(Modifier.fillMaxWidth().background(if (k.donker) Color.Black else k.paperRaised).border(1.dp, if (k.donker) k.lineSoft else k.line)) {
-            Text(kanji, style = NHTekst.titelXl.copy(fontSize = 110.sp, lineHeight = 110.sp), color = k.red, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp))
-            Column(Modifier.padding(16.dp)) {
-                Text("week ${weekNummer(vandaag)} · ${vandaag.dayOfMonth} ${vandaag.month.getDisplayName(TextStyle.FULL, NL)}", style = NHTekst.label, color = k.muted)
-                Text(dagNaam(vandaag), style = NHTekst.titelXl.copy(fontSize = 44.sp, lineHeight = 46.sp), color = k.ink)
-            }
-        }
-        Venster("planner.exe", "予定") {
-            Text("Het Planner-tabje komt in de volgende fase: de Standaardweek vanaf nu, gewoontes om af te vinken en je taken.", style = NHTekst.body, color = k.ink)
-            Text("Tot die tijd staat alles op de website.", style = NHTekst.small, color = k.muted)
-            Spacer(Modifier.height(4.dp))
-            Knop("Planner openen", hoofd = true) {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/planner/")))
-            }
-        }
-    }
-}
-
 // ================= Reageren =================
 @Composable
 fun ReagerenScherm(naarInstellingen: () -> Unit) {

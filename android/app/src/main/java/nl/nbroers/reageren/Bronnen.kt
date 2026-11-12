@@ -170,7 +170,7 @@ object Agenda {
 }
 
 // ---------- Weer (Open-Meteo) en regen (Buienradar), Rotterdam ----------
-data class Weer(val temp: Double?, val code: Int?, val regen: List<Pair<Long, Double>>, val zonOnder: Long?)
+data class Weer(val temp: Double?, val code: Int?, val regen: List<Pair<Long, Double>>, val zonOnder: Long?, val perUur: Map<Long, Double> = emptyMap())
 
 object WeerBron {
     private const val LAT = 51.92
@@ -194,13 +194,18 @@ object WeerBron {
         var temp: Double? = null
         var code: Int? = null
         var zonOnder: Long? = null
+        val perUur = HashMap<Long, Double>()
         try {
-            val j = JSONObject(get("https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,weather_code&daily=sunset&timeformat=unixtime&timezone=Europe%2FAmsterdam&forecast_days=1"))
+            val j = JSONObject(get("https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,weather_code&daily=sunset&hourly=precipitation&timeformat=unixtime&timezone=Europe%2FAmsterdam&forecast_days=7"))
             j.optJSONObject("current")?.let { temp = it.optDouble("temperature_2m"); code = it.optInt("weather_code") }
             j.optJSONObject("daily")?.optJSONArray("sunset")?.let { if (it.length() > 0) zonOnder = it.getLong(0) * 1000 }
+            j.optJSONObject("hourly")?.let { h ->
+                val t = h.optJSONArray("time"); val p = h.optJSONArray("precipitation")
+                if (t != null && p != null) for (i in 0 until minOf(t.length(), p.length())) perUur[t.getLong(i) * 1000] = p.optDouble(i, 0.0)
+            }
         } catch (e: Exception) { }
         val regen = try { buienradar() } catch (e: Exception) { emptyList() }
-        return Weer(temp, code, regen, zonOnder)
+        return Weer(temp, code, regen, zonOnder, perUur)
     }
 
     // "val|HH:MM" per 5 minuten, komende 2 uur; mm/u = 10^((val-109)/32)
@@ -230,6 +235,15 @@ object WeerBron {
             return if (droog != null) "Regen tot ${Tijd.uur(droog.first)}" else "Regen, komende 2 uur"
         }
         return "Droog tot ${Tijd.uur(nat.first)}"
+    }
+
+    /** "droog" of "buien" op een moment: binnen 2 uur uit Buienradar, daarna per uur uit Open-Meteo; null = te ver weg. */
+    fun opMoment(w: Weer?, ms: Long): String? {
+        w ?: return null
+        w.regen.firstOrNull { ms >= it.first && ms < it.first + 5 * 60000 }?.let { return if (it.second >= REGEN_MIN) "regen" else "droog" }
+        val uur = ms - Math.floorMod(ms, 3600000L)
+        val mm = w.perUur[uur] ?: return null
+        return if (mm >= 0.2) "buien" else "droog"
     }
 
     fun omschrijving(code: Int?) = when (code) {
