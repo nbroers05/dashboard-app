@@ -97,7 +97,8 @@ fun PlannerScherm() {
             out += Item("${o.titel} inleveren", o.due, null, "deadline",
                 if (over > 0) "deadline · nog ${if (over >= DAG_MS) "${over / DAG_MS}d " else ""}${(over % DAG_MS) / 3600000}u" else "deadline · te laat")
         }
-        return out.sortedWith(compareBy({ it.start ?: -1 }, { it.titel }))
+        // -1L (Long), niet -1: een Int naast Long-tijden gaf een ClassCastException bij het sorteren (crash in 0.7.0)
+        return out.sortedWith(compareBy<Item>({ it.start ?: -1L }, { it.titel }))
     }
 
     Scherm {

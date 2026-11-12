@@ -16,6 +16,16 @@ import nl.nbroers.reageren.ui.NoahTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Crashlog (sinds 0.7.1): de laatste fout bewaren, zodat hij in Reageren › instellingen staat en Noah hem kan doorsturen
+        val vorige = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            try {
+                val sw = java.io.StringWriter()
+                e.printStackTrace(java.io.PrintWriter(sw))
+                Prefs(this).put("crash.last", "${java.time.LocalDateTime.now().withNano(0)} · versie ${packageManager.getPackageInfo(packageName, 0).versionName}\n" + sw.toString().take(4000))
+            } catch (x: Exception) { }
+            vorige?.uncaughtException(t, e)
+        }
         enableEdgeToEdge()
         setContent { NoahTheme { App() } }
     }

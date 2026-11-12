@@ -16,7 +16,7 @@ De meldingenlezer van Nog reageren werkt zoals eerst: melding van een chat-app =
 
 ## Installeren of bijwerken (op de telefoon)
 
-1. Open in Firefox: https://github.com/nbroers05/dashboard-app/releases/download/telefoon-v0.7.0/dashboard-telefoon.apk
+1. Open in Firefox: https://github.com/nbroers05/dashboard-app/releases/download/telefoon-v0.7.1/dashboard-telefoon.apk
 2. Open het gedownloade bestand en tik op **Bijwerken** (of Installeren). Vraagt Android om toestemming voor Firefox, zet "Toestaan vanaf deze bron" aan.
 3. Open de app. Op **Vandaag** tik je één keer op **Agenda van de telefoon gebruiken** en kies je Toestaan.
 4. Stond Nog reageren er al op: inloggen en toegang tot meldingen blijven staan. Zo niet: Reageren › instellingen › **Toegang tot meldingen geven** en inloggen met de mail en het wachtwoord van de planner.
@@ -40,6 +40,7 @@ Reageren › instellingen › **meldingen.exe** toont wat er met elke melding ge
 
 | Versie | Wat |
 |---|---|
+| 0.7.1 | Planner sloot de app af zodra er iets zonder tijd in de lijst stond (hele-dag-afspraak of taak zonder tijd): opgelost. Nieuw: crashlog onder Reageren › instellingen (crash.exe), om door te sturen als de app ooit afsluit. |
 | 0.7.0 | **Fase D**: het Planner-tabje zoals de mockup (lijst, dag, week, dagstrip, regencheck, deadlines, gewoontes). Daarmee zijn alle vijf de tabjes er. |
 | 0.6.0 | **Fase C**: het Data-tabje zoals de mockup (check-in, kerncijfers, pc-uren, Memory Lane). Koppelen met de wachtzin haalt nu ook het archief-token uit de inlogbundel. |
 | 0.5.0 | **Fase B**: het Media-tabje zoals de mockup (speler met songtekst, film, Episodes Left, F1, vrienden, Spotify-maand, feeds). |

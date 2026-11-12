@@ -12,8 +12,8 @@ android {
         applicationId = "nl.nbroers.reageren"
         minSdk = 29
         targetSdk = 34
-        versionCode = 7
-        versionName = "0.7.0"
+        versionCode = 8
+        versionName = "0.7.1"
     }
 
     // De sleutel staat alleen als geheim op GitHub. Altijd dezelfde sleutel, anders kun je een nieuwe versie niet over de oude installeren.

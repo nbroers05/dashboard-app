@@ -234,6 +234,17 @@ fun InstellingenScherm(onTerug: () -> Unit) {
             Text(remember(wakker, ververs) { Diag.read(context) }, style = NHTekst.label.copy(fontSize = 11.sp, lineHeight = 15.sp), color = k.ink)
         }
 
+        // Laatste crash (selecteerbaar, om door te sturen); weg met de knop
+        prefs.get("crash.last")?.let { crash ->
+            Venster("crash.exe", "記録") {
+                Text("De app is afgesloten door deze fout. Stuur een screenshot van de eerste regels.", style = NHTekst.small, color = k.muted)
+                androidx.compose.foundation.text.selection.SelectionContainer {
+                    Text(crash.lines().take(14).joinToString("\n"), style = NHTekst.label.copy(fontSize = 10.sp, lineHeight = 13.sp), color = k.ink)
+                }
+                Knop("Weghalen") { prefs.put("crash.last", null); ververs++ }
+            }
+        }
+
         Text("Versie ${context.packageManager.getPackageInfo(context.packageName, 0).versionName}", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(bottom = 16.dp))
     }
 }
