@@ -3,7 +3,7 @@
 De enige app op de S24, in de huisstijl (Noah Huisstijl, Jetpack Compose). Onderin vijf tabjes, met een minispeler erboven zolang er iets speelt (niet op Media; tik = naar Media, knop = pauze):
 
 - **Vandaag**: groet en klok, de dag als chips (appie, regen, Canvas), weer met buienalarm, appie (vandaag of de volgende dienst, uren deze week en netto), Canvas met vinkjes (dezelfde als op de pc), meldingen (nog reageren, Episodes Left, mail), to-do (tik = de lijst, dezelfde als op de pc) en check-in.
-- **Planner**: komt in een volgende fase. Nu een knop naar de planner op de website.
+- **Planner**: lijst, dag of week. Dagstrip ma t/m zo met puntjes per soort (appie, college, deadline, taak); tik = die dag. Lijst: twee weken als rijen per dag, met regencheck onder elke appie-dienst ("vertrek 16:35 droog · 19:00 buien") en aftellen bij een Canvas-deadline; taken vink je af. Dag: tijdlijn met de Standaardweek-blokken (gestippeld = automatisch) en een rode nu-lijn. Week: zeven kolommen. Onderaan gewoontes om af te vinken, met reeks. Uit de Supabase van de planner (zelfde account als Nog reageren) en de agenda van de telefoon. Taken toevoegen of slepen doe je nog op de website.
 - **Media**: filterchips (alles, film, series, f1, feeds). Grote speler met songtekst (LRCLIB, loopt mee), film met tabjes vanavond (van het dashboard, met bios) en laatst gekeken (Letterboxd), Episodes Left (stand van de pc), F1 met aftellen (Jolpica), vrienden (Letterboxd), Spotify-maand (van het dashboard) en feeds (nieuws, filmnieuws, YouTube).
 - **Data**: check-in invullen (dezelfde vier vragen als op de pc: stemming, energie, focus, stress, plus een notitie; gaat naar het privé archief, zonder netwerk eerst in een wachtrij), kerncijfers (Spotify deze week, appie deze maand, buiten, stappen), pc-uren deze week als staafjes, Memory Lane (tik = ander jaar) en "Alle grafieken" naar Mijn data. Leest het privé archief met het archief-token uit de inlogbundel (vault.json), dat de app bij het koppelen met de wachtzin ophaalt.
 - **Reageren**: Nog reageren met tabjes per app, hoe lang iets al wacht (rood na 2 dagen), kruisje om weg te halen. Rechtsboven **instellingen**.
@@ -16,7 +16,7 @@ De meldingenlezer van Nog reageren werkt zoals eerst: melding van een chat-app =
 
 ## Installeren of bijwerken (op de telefoon)
 
-1. Open in Firefox: https://github.com/nbroers05/dashboard-app/releases/download/telefoon-v0.6.0/dashboard-telefoon.apk
+1. Open in Firefox: https://github.com/nbroers05/dashboard-app/releases/download/telefoon-v0.7.0/dashboard-telefoon.apk
 2. Open het gedownloade bestand en tik op **Bijwerken** (of Installeren). Vraagt Android om toestemming voor Firefox, zet "Toestaan vanaf deze bron" aan.
 3. Open de app. Op **Vandaag** tik je één keer op **Agenda van de telefoon gebruiken** en kies je Toestaan.
 4. Stond Nog reageren er al op: inloggen en toegang tot meldingen blijven staan. Zo niet: Reageren › instellingen › **Toegang tot meldingen geven** en inloggen met de mail en het wachtwoord van de planner.
@@ -40,6 +40,7 @@ Reageren › instellingen › **meldingen.exe** toont wat er met elke melding ge
 
 | Versie | Wat |
 |---|---|
+| 0.7.0 | **Fase D**: het Planner-tabje zoals de mockup (lijst, dag, week, dagstrip, regencheck, deadlines, gewoontes). Daarmee zijn alle vijf de tabjes er. |
 | 0.6.0 | **Fase C**: het Data-tabje zoals de mockup (check-in, kerncijfers, pc-uren, Memory Lane). Koppelen met de wachtzin haalt nu ook het archief-token uit de inlogbundel. |
 | 0.5.0 | **Fase B**: het Media-tabje zoals de mockup (speler met songtekst, film, Episodes Left, F1, vrienden, Spotify-maand, feeds). |
 | 0.4.0 | **Fase A van de nieuwe mockup**: vijf tabjes (Vandaag, Planner, Media, Data, Reageren) en een minispeler. Vandaag zoals de mockup: groet en klok, chips, weer, appie met netto, Canvas met vinkjes, meldingen (reageren, Episodes, mail), to-do en check-in. Koppelen met het dashboard via je wachtzin. Media, Data en Planner zijn nog eenvoudig. |
