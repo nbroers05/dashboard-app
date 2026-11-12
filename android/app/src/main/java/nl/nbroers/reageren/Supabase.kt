@@ -18,7 +18,7 @@ import javax.crypto.spec.GCMParameterSpec
 class HttpResult(val code: Int, val body: String)
 
 /** Versleutelt de blijvende sleutel met een sleutel die het toestel niet verlaat. Het wachtwoord zelf wordt nergens bewaard. */
-private object Vault {
+internal object Vault {
     private const val ALIAS = "reageren.refresh"
 
     private fun key(): SecretKey {

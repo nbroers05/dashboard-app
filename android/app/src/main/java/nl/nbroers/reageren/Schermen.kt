@@ -42,33 +42,13 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-private val NL = Locale("nl", "NL")
+internal val NL = Locale("nl", "NL")
 
 /** Wordt opgehoogd als de app weer in beeld komt (MainActivity.onResume): schermen halen dan opnieuw op. */
 object Wakker { var tel by mutableIntStateOf(0) }
 
-// ---------- De app: drie tabjes onderin, instellingen als eigen scherm ----------
 @Composable
-fun App() {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
-    var instellingen by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().systemBarsPadding()) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (instellingen) {
-                BackHandler { instellingen = false }
-                InstellingenScherm(onTerug = { instellingen = false })
-            } else when (tab) {
-                0 -> VandaagScherm(naarReageren = { tab = 2 })
-                1 -> PlannerScherm()
-                else -> ReagerenScherm(naarInstellingen = { instellingen = true })
-            }
-        }
-        if (!instellingen) Onderbalk(listOf("vandaag", "planner", "reageren"), tab) { tab = it }
-    }
-}
-
-@Composable
-private fun Scherm(content: @Composable ColumnScope.() -> Unit) {
+internal fun Scherm(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -78,183 +58,24 @@ private fun Scherm(content: @Composable ColumnScope.() -> Unit) {
 
 /** Tikt elke minuut, zodat tijden en "nu" kloppen. */
 @Composable
-private fun minuut(): Long {
+internal fun minuut(): Long {
     var nu by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(60000 - nu % 60000); nu = System.currentTimeMillis() } }
     return nu
 }
 
-private fun weekNummer(d: LocalDate) = d.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
-private fun dagNaam(d: LocalDate) = d.dayOfWeek.getDisplayName(TextStyle.FULL, NL).replaceFirstChar { it.uppercase() }
-private fun maandKort(d: LocalDate) = d.month.getDisplayName(TextStyle.SHORT, NL).trimEnd('.')
+internal fun weekNummer(d: LocalDate) = d.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+internal fun dagNaam(d: LocalDate) = d.dayOfWeek.getDisplayName(TextStyle.FULL, NL).replaceFirstChar { it.uppercase() }
+internal fun maandKort(d: LocalDate) = d.month.getDisplayName(TextStyle.SHORT, NL).trimEnd('.')
 
-// ================= Vandaag =================
-@Composable
-fun VandaagScherm(naarReageren: () -> Unit) {
-    val context = LocalContext.current
-    val k = LocalNH.current
-    val nu = minuut()
-    val wakker = Wakker.tel
-    val vandaag = LocalDate.now()
-
-    // Wat er speelt
-    var speelt by remember { mutableStateOf<Speelt?>(null) }
-    var mediaZonderToegang by remember { mutableStateOf(false) }
-    DisposableEffect(wakker) {
-        val media = Media(context) { speelt = it }
-        media.start()
-        mediaZonderToegang = media.geenToegang
-        onDispose { media.stop() }
-    }
-
-    // Agenda
-    var magAgenda by remember { mutableStateOf(Agenda.magLezen(context)) }
-    val vraag = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { magAgenda = it }
-    var afspraken by remember { mutableStateOf<List<Afspraak>>(emptyList()) }
-    LaunchedEffect(magAgenda, wakker, nu / (5 * 60000)) {
-        if (!magAgenda) return@LaunchedEffect
-        val van = Agenda.dagStart(Agenda.weekStart())
-        afspraken = withContext(Dispatchers.IO) { Agenda.tussen(context, van, van + 14L * 24 * 3600000) }
-    }
-
-    // Weer
-    var weer by remember { mutableStateOf<Weer?>(null) }
-    LaunchedEffect(wakker, nu / (10 * 60000)) { weer = withContext(Dispatchers.IO) { WeerBron.haal() } }
-
-    // Nog reageren (alleen het aantal, voor de regel onderaan)
-    var wachten by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(wakker, nu / (5 * 60000)) {
-        wachten = withContext(Dispatchers.IO) { try { Reageren.lijst(context)?.size } catch (e: Exception) { null } }
-    }
-
-    val dagStart = Agenda.dagStart(vandaag)
-    val morgen = dagStart + 24 * 3600000L
-    val ah = afspraken.filter { it.isAH }
-    val volgendeDienst = ah.firstOrNull { it.eind > nu }
-    val rechts = when {
-        volgendeDienst != null && volgendeDienst.start > nu && volgendeDienst.start < morgen -> "appie over ${Tijd.over(volgendeDienst.start)}"
-        weer?.zonOnder != null && weer!!.zonOnder!! > nu -> "zon onder ${Tijd.uur(weer!!.zonOnder!!)}"
-        else -> null
-    }
-
-    Scherm {
-        Kop("week ${weekNummer(vandaag)} · ${vandaag.dayOfMonth} ${maandKort(vandaag)}", dagNaam(vandaag), rechts)
-
-        // ---- speelt.exe ----
-        Venster("speelt.exe", "音楽") {
-            val s = speelt
-            when {
-                mediaZonderToegang -> Text("Geef de app toegang tot meldingen (Instellingen), dan zie je hier wat er speelt.", style = NHTekst.small, color = k.muted)
-                s == null -> Text("Er speelt niks.", style = NHTekst.body, color = k.muted)
-                else -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(64.dp).background(k.eva).border(1.dp, k.line)) {
-                            s.hoes?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(s.titel, style = NHTekst.titelM, color = k.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(listOf(s.wie, "via ${s.app}").filter { it.isNotBlank() }.joinToString(" · "), style = NHTekst.small, color = k.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Knop("Vorige", modifier = Modifier.weight(1f)) { s.controller.transportControls.skipToPrevious() }
-                        Knop(if (s.speelt) "Pauze" else "Spelen", hoofd = true, modifier = Modifier.weight(1f)) {
-                            if (s.speelt) s.controller.transportControls.pause() else s.controller.transportControls.play()
-                        }
-                        Knop("Volgende", modifier = Modifier.weight(1f)) { s.controller.transportControls.skipToNext() }
-                    }
-                }
-            }
-        }
-
-        // ---- weer.exe + appie.exe ----
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-            Venster("weer.exe", "天気", Modifier.weight(1f).fillMaxHeight()) {
-                val w = weer
-                if (w == null) Text("weer ophalen_", style = NHTekst.label, color = k.muted)
-                else {
-                    Text(w.temp?.let { "%.0f°".format(it) } ?: "–", style = NHTekst.getal, color = k.ink)
-                    Text(WeerBron.zin(w), style = NHTekst.small, color = k.ink)
-                    RegenStaafjes(w)
-                }
-            }
-            Venster("appie.exe", "仕事", Modifier.weight(1f).fillMaxHeight()) {
-                if (!magAgenda) Text("Agenda nodig", style = NHTekst.small, color = k.muted)
-                else {
-                    val weekVan = Agenda.dagStart(Agenda.weekStart())
-                    val weekTot = weekVan + 7 * 24 * 3600000L
-                    val uren = ah.filter { it.start >= weekVan && it.start < weekTot }.sumOf { it.eind - it.start } / 3600000.0
-                    Text("${"%.1f".format(NL, uren).removeSuffix(",0")} u", style = NHTekst.getal, color = k.ink)
-                    Text("deze week", style = NHTekst.small, color = k.muted)
-                    volgendeDienst?.let {
-                        Text("volgende: ${if (it.start < morgen) "vandaag" else Tijd.dagKort(it.start)} ${Tijd.uur(it.start)}", style = NHTekst.small, color = k.muted)
-                    }
-                }
-            }
-        }
-
-        // ---- vandaag.exe ----
-        Venster("vandaag.exe", "予定", zonderRand = true) {
-            if (!magAgenda) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Laat de app de agenda van je telefoon lezen. Dan staan je diensten, colleges en Canvas hier zonder iets te koppelen.", style = NHTekst.small, color = k.muted)
-                    Knop("Agenda van de telefoon gebruiken", hoofd = true) { vraag.launch(Manifest.permission.READ_CALENDAR) }
-                }
-            } else {
-                val rest = afspraken.filter { !it.isCanvas && !it.heleDag && it.eind > nu && it.start < morgen }
-                val heleDag = afspraken.filter { !it.isCanvas && it.heleDag && it.start <= dagStart && it.eind > dagStart }
-                heleDag.forEach { Rij(it.titel, "hele dag") ; Scheiding() }
-                if (rest.isEmpty()) {
-                    val eerstvolgende = afspraken.firstOrNull { !it.isCanvas && !it.heleDag && it.start >= morgen }
-                    if (eerstvolgende != null) {
-                        Rij("${if (eerstvolgende.start < morgen + 24 * 3600000L) "Morgen" else dagNaam(java.time.Instant.ofEpochMilli(eerstvolgende.start).atZone(java.time.ZoneId.systemDefault()).toLocalDate())}: ${eerstvolgende.titel}",
-                            "${Tijd.dagKort(eerstvolgende.start)} ${Tijd.uur(eerstvolgende.start)}", sub = eerstvolgende.plek.ifBlank { null },
-                            vierkantje = kleurVan(eerstvolgende, k))
-                    } else Lijntekening(Tekening.Klaar, "Niks meer gepland. Verdacht.", breedte = 120.dp)
-                } else rest.forEachIndexed { i, a ->
-                    if (i > 0) Scheiding()
-                    val sub = when {
-                        a.isAH -> fietsZin(a, weer)
-                        a.start <= nu -> "nu, tot ${Tijd.uur(a.eind)}"
-                        else -> a.plek.ifBlank { null }
-                    }
-                    Rij(if (a.isAH) "Appie" else a.titel, Tijd.uur(a.start), sub = sub, vierkantje = kleurVan(a, k))
-                }
-            }
-        }
-
-        // ---- canvas.exe ----
-        if (magAgenda) {
-            val deadlines = afspraken.filter { it.isCanvas && it.eind > nu && it.eind < nu + 7 * 24 * 3600000L }.take(3)
-            Venster("canvas.exe", "締切", zonderRand = true) {
-                if (deadlines.isEmpty()) Text("Niks open de komende week.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
-                deadlines.forEachIndexed { i, d ->
-                    if (i > 0) Scheiding()
-                    val code = Regex("""\[([^\]]+)]\s*$""").find(d.titel)?.groupValues?.get(1)
-                    Rij(d.titel.replace(Regex("""\s*\[[^\]]+]\s*$"""), ""), "${Tijd.dagKort(d.eind)} ${Tijd.uur(d.eind)}", sub = code, let = d.eind - nu < 24 * 3600000L)
-                }
-            }
-        }
-
-        // ---- onderaan: wat er nog wacht ----
-        wachten?.takeIf { it > 0 }?.let { n ->
-            Text(
-                "$n nog reageren", style = NHTekst.small, color = k.muted, textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = naarReageren).wrapContentHeight(),
-            )
-        }
-    }
-}
-
-private fun kleurVan(a: Afspraak, k: NHKleuren): Color = when {
+internal fun kleurVan(a: Afspraak, k: NHKleuren): Color = when {
     a.isAH -> k.ah
     a.isCollege -> k.eva
     else -> k.lineSoft
 }
 
 // Fietsen naar de dienst (25 min ervoor): droog of regen, alleen als het binnen het buienradarvenster valt
-private fun fietsZin(a: Afspraak, w: Weer?): String {
+internal fun fietsZin(a: Afspraak, w: Weer?): String {
     val tijden = "${Tijd.uur(a.start)} - ${Tijd.uur(a.eind)}"
     val vertrek = a.start - 25 * 60000
     val slot = w?.regen?.firstOrNull { vertrek >= it.first && vertrek < it.first + 5 * 60000 } ?: return tijden
@@ -262,7 +83,7 @@ private fun fietsZin(a: Afspraak, w: Weer?): String {
 }
 
 @Composable
-private fun RegenStaafjes(w: Weer) {
+internal fun RegenStaafjes(w: Weer) {
     val k = LocalNH.current
     val now = System.currentTimeMillis()
     val slots = w.regen.filter { it.first + 5 * 60000 > now }.take(24)
@@ -421,6 +242,14 @@ fun InstellingenScherm(onTerug: () -> Unit) {
             Knop("Uitloggen") { Supabase.signOut(context); ververs++ }
         }
 
+        // Dashboard: één keer de wachtzin, voor AH-netto, Canvas-vinkjes, to-do, Episodes en mail
+        val dash = remember(wakker, ververs) { Dash.gekoppeld(context) }
+        if (!dash) Wachtzin { ververs++ }
+        else Venster("dashboard.exe", "鍵") {
+            Text("Gekoppeld aan het dashboard.", style = NHTekst.body, color = k.ink)
+            Knop("Ontkoppelen") { Dash.ontkoppel(context); ververs++ }
+        }
+
         Venster("apps.exe", "返信", zonderRand = true) {
             CHAT_APPS.forEach { app -> Vinkje(app.label, prefs.isOn(app)) { prefs.setOn(app, it) } }
             Scheiding()
@@ -474,6 +303,29 @@ private fun Inloggen(onKlaar: () -> Unit) {
         Veld("Wachtwoord", wachtwoord, KeyboardType.Password, true) { wachtwoord = it }
         fout?.let { Text(it, style = NHTekst.small, color = k.red) }
         Knop(if (bezig) "Bezig…" else "Inloggen", hoofd = true) { if (!bezig) { fout = null; poging++ } }
+    }
+}
+
+@Composable
+internal fun Wachtzin(onKlaar: () -> Unit) {
+    val context = LocalContext.current
+    val k = LocalNH.current
+    var zin by remember { mutableStateOf("") }
+    var fout by remember { mutableStateOf<String?>(null) }
+    var bezig by remember { mutableStateOf(false) }
+    var poging by remember { mutableIntStateOf(0) }
+    LaunchedEffect(poging) {
+        if (poging == 0) return@LaunchedEffect
+        bezig = true
+        val f = withContext(Dispatchers.Default) { Dash.koppel(context, zin) }
+        bezig = false
+        if (f == null) { zin = ""; onKlaar() } else fout = f
+    }
+    Venster("dashboard.exe", "鍵") {
+        Text("Eén keer je wachtzin, dezelfde als bij inloggen op het dashboard. Dan staan AH-netto, Canvas-vinkjes, to-do, Episodes en mail hier ook. De wachtzin zelf wordt niet bewaard.", style = NHTekst.small, color = k.muted)
+        Veld("Wachtzin", zin, KeyboardType.Password, true) { zin = it }
+        fout?.let { Text(it, style = NHTekst.small, color = k.red) }
+        Knop(if (bezig) "Even rekenen…" else "Koppelen", hoofd = true) { if (!bezig && zin.isNotEmpty()) { fout = null; poging++ } }
     }
 }
 
