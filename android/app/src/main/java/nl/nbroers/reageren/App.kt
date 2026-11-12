@@ -124,7 +124,7 @@ internal fun Hoes(s: Speelt, maat: Int) {
 
 // ---------- Gedeeld met het dashboard (Supabase van het dashboard) ----------
 @Composable
-private fun rememberGedeeld(nu: Long): Pair<Gedeeld?, (Gedeeld) -> Unit> {
+internal fun rememberGedeeld(nu: Long): Pair<Gedeeld?, (Gedeeld) -> Unit> {
     val context = LocalContext.current
     val wakker = Wakker.tel
     var g by remember { mutableStateOf<Gedeeld?>(null) }
@@ -378,41 +378,6 @@ fun TodoScherm(onTerug: () -> Unit) {
                     }
                 }
             }
-        }
-    }
-}
-
-// ================= Media (fase B) =================
-@Composable
-fun MediaScherm(speelt: Speelt?, zonderToegang: Boolean) {
-    val k = LocalNH.current
-    Scherm {
-        Venster("${speelt?.app?.lowercase()?.replace(" ", "") ?: "speler"}.exe", "音楽") {
-            when {
-                zonderToegang -> Text("Geef de app toegang tot meldingen (Reageren › instellingen), dan zie je hier wat er speelt.", style = NHTekst.small, color = k.muted)
-                speelt == null -> Text("Er speelt niks.", style = NHTekst.body, color = k.muted)
-                else -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Hoes(speelt, 112)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(speelt.app.lowercase(), style = NHTekst.label, color = k.muted)
-                            Text(speelt.titel, style = NHTekst.titelM, color = k.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(speelt.wie, style = NHTekst.small, color = k.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Knop("Vorige", modifier = Modifier.weight(1f)) { speelt.controller.transportControls.skipToPrevious() }
-                        Knop(if (speelt.speelt) "Pauze" else "Spelen", hoofd = true, modifier = Modifier.weight(1f)) {
-                            if (speelt.speelt) speelt.controller.transportControls.pause() else speelt.controller.transportControls.play()
-                        }
-                        Knop("Volgende", modifier = Modifier.weight(1f)) { speelt.controller.transportControls.skipToNext() }
-                    }
-                }
-            }
-        }
-        Venster("media.exe", "映画") {
-            Text("Songtekst, film, Episodes Left, F1, vrienden en Spotify-maand komen in de volgende fase.", style = NHTekst.body, color = k.ink)
         }
     }
 }

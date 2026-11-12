@@ -144,5 +144,19 @@ class Gedeeld(val stand: JSONObject?, val loon: JSONObject?, val todo: JSONArray
     val checkinsVandaag: Int? get() = stand?.optJSONObject("checkin")?.let {
         if (it.optString("day") == java.time.LocalDate.now().toString()) it.optInt("count") else 0
     }
+    // Fase B (dashboard 1.6.0): film van vanavond en Spotify-maand
+    data class Film(val titel: String, val jaar: String?, val verwacht: Double?, val poster: String?)
+    data class Top(val naam: String, val sub: String, val beeld: String?)
+    val film: Film? get() = stand?.optJSONObject("film")?.let {
+        if (!it.has("title")) null else Film(it.optString("title"), it.optString("year").ifBlank { null }?.takeIf { y -> y != "null" },
+            if (it.isNull("predicted")) null else it.optDouble("predicted"), if (it.isNull("poster")) null else it.optString("poster"))
+    }
+    private fun top(key: String): List<Top> {
+        val arr = stand?.optJSONObject("spotify")?.optJSONArray(key) ?: return emptyList()
+        return (0 until arr.length()).map { arr.getJSONObject(it) }.map { Top(it.optString("name"), it.optString("sub"), if (it.isNull("img")) null else it.optString("img")) }
+    }
+    val nummers: List<Top> get() = top("tracks")
+    val artiesten: List<Top> get() = top("artists")
+
     val todoOpen: Int get() = todo?.let { t -> (0 until t.length()).count { !t.getJSONObject(it).optBoolean("done") } } ?: 0
 }

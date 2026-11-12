@@ -34,6 +34,9 @@ data class Speelt(
     val hoes: Bitmap?,
     val speelt: Boolean,
     val controller: MediaController,
+    val artiest: String = "",
+    val album: String = "",
+    val duur: Long = 0,
 )
 
 class Media(private val context: Context, private val onChange: (Speelt?) -> Unit) {
@@ -96,6 +99,9 @@ class Media(private val context: Context, private val onChange: (Speelt?) -> Uni
                 hoes = m.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: m.getBitmap(MediaMetadata.METADATA_KEY_ART),
                 speelt = c.playbackState?.state == PlaybackState.STATE_PLAYING,
                 controller = c,
+                artiest = m.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: "",
+                album = m.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: "",
+                duur = m.getLong(MediaMetadata.METADATA_KEY_DURATION),
             )
         )
     }
