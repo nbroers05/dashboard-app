@@ -1,0 +1,1 @@
+Lettertypes in app/src/main/res/font: DotGothic16, Shippori Mincho B1 en Zen Kaku Gothic New (SIL Open Font License 1.1, github.com/google/fonts), verkleind tot de letters en Japanse woorden die de app gebruikt (subset_fonts.py staat niet in de repo; opnieuw maken met fonttools: pyftsubset op Latin + de woordenlijst uit het design system).

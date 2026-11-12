@@ -1,4 +1,4 @@
-name: Android Nog reageren
+name: Android telefoon-app
 
 on:
   push:
@@ -54,10 +54,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
-          TAG="reageren-v$VERSION"
-          cp android/app/build/outputs/apk/release/app-release.apk nog-reageren.apk
+          TAG="telefoon-v$VERSION"
+          cp android/app/build/outputs/apk/release/app-release.apk dashboard-telefoon.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" nog-reageren.apk --clobber
+            gh release upload "$TAG" dashboard-telefoon.apk --clobber
           else
-            gh release create "$TAG" nog-reageren.apk --title "Nog reageren $VERSION" --notes "Android-app voor het vak Nog reageren in de planner." --latest=false
+            gh release create "$TAG" dashboard-telefoon.apk --title "Telefoon-app $VERSION" --notes "Android-app: Vandaag, Planner en Reageren in de huisstijl." --latest=false
           fi
