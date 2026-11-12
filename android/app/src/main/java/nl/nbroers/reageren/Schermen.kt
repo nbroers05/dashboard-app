@@ -307,7 +307,7 @@ private fun Inloggen(onKlaar: () -> Unit) {
 }
 
 @Composable
-internal fun Wachtzin(onKlaar: () -> Unit) {
+internal fun Wachtzin(alleenArchief: Boolean = false, onKlaar: () -> Unit) {
     val context = LocalContext.current
     val k = LocalNH.current
     var zin by remember { mutableStateOf("") }
@@ -317,12 +317,12 @@ internal fun Wachtzin(onKlaar: () -> Unit) {
     LaunchedEffect(poging) {
         if (poging == 0) return@LaunchedEffect
         bezig = true
-        val f = withContext(Dispatchers.Default) { Dash.koppel(context, zin) }
+        val f = withContext(Dispatchers.Default) { if (alleenArchief) Archief.koppel(context, zin) else Dash.koppel(context, zin) }
         bezig = false
         if (f == null) { zin = ""; onKlaar() } else fout = f
     }
     Venster("dashboard.exe", "鍵") {
-        Text("Eén keer je wachtzin, dezelfde als bij inloggen op het dashboard. Dan staan AH-netto, Canvas-vinkjes, to-do, Episodes en mail hier ook. De wachtzin zelf wordt niet bewaard.", style = NHTekst.small, color = k.muted)
+        Text(if (alleenArchief) "Eén keer je wachtzin, voor je cijfers, Memory Lane en check-ins uit het data-archief. De wachtzin zelf wordt niet bewaard." else "Eén keer je wachtzin, dezelfde als bij inloggen op het dashboard. Dan staan AH-netto, Canvas-vinkjes, to-do, Episodes, mail en je data-archief hier ook. De wachtzin zelf wordt niet bewaard.", style = NHTekst.small, color = k.muted)
         Veld("Wachtzin", zin, KeyboardType.Password, true) { zin = it }
         fout?.let { Text(it, style = NHTekst.small, color = k.red) }
         Knop(if (bezig) "Even rekenen…" else "Koppelen", hoofd = true) { if (!bezig && zin.isNotEmpty()) { fout = null; poging++ } }

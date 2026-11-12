@@ -42,7 +42,12 @@ object Dash {
         return try {
             val r = login(pw)
             when {
-                r == null -> { Prefs(context).put(PW, Vault.seal(pw)); null }
+                r == null -> {
+                    Prefs(context).put(PW, Vault.seal(pw))
+                    // Zelfde wachtzin opent ook de inlogbundel met het archief-token (Data-tabje); mislukt dat, dan werkt de rest gewoon
+                    Archief.koppel(context, wachtzin)
+                    null
+                }
                 else -> r
             }
         } catch (e: IOException) {
@@ -52,6 +57,7 @@ object Dash {
 
     fun ontkoppel(context: Context) {
         Prefs(context).put(PW, null)
+        Archief.vergeet(context)
         synchronized(this) { access = null; expires = 0; userId = null }
     }
 

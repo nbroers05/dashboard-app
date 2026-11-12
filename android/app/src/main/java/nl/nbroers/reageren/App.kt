@@ -382,23 +382,3 @@ fun TodoScherm(onTerug: () -> Unit) {
     }
 }
 
-// ================= Data (fase C) =================
-@Composable
-fun DataScherm() {
-    val k = LocalNH.current
-    val context = LocalContext.current
-    Scherm {
-        Kop("deze week", "Data")
-        Venster("data.exe", "記録") {
-            Text("Check-in, kerncijfers, pc-uren en Memory Lane komen in een volgende fase.", style = NHTekst.body, color = k.ink)
-            Text("Tot die tijd: check-in en grafieken op de website.", style = NHTekst.small, color = k.muted)
-            Spacer(Modifier.height(4.dp))
-            Knop("Check-in invullen", hoofd = true) {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/#checkin")))
-            }
-            Knop("Alle grafieken") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/#mydata")))
-            }
-        }
-    }
-}
