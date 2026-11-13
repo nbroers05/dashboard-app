@@ -9,11 +9,11 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 /**
- * De Supabase van het dashboard (sinds 0.4.0), los van die van de planner. Inloggen gaat net als in het dashboard
- * (sync.js): het wachtwoord is PBKDF2-SHA256(wachtzin, "dashboard-supabase-v1:<url>", 600.000 rondes), 32 bytes base64.
- * De wachtzin zelf wordt nergens bewaard; alleen dat afgeleide wachtwoord, versleuteld met een sleutel van het toestel.
- * Daar staan: de stand die het dashboard voor de telefoon klaarzet (_telefoon.stand), het AH-loon (_telefoon.loon),
- * de to-do (todo.items) en de Canvas-vinkjes (dashboard_canvas_done).
+ * The dashboard's Supabase (since 0.4.0), separate from the planner's. Logging in works like in the dashboard
+ * (sync.js): the password is PBKDF2-SHA256(passphrase, "dashboard-supabase-v1:<url>", 600,000 rounds), 32 bytes base64.
+ * The passphrase itself is never stored; only that derived password, encrypted with a key of the device.
+ * In it: the status the dashboard prepares for the phone (_phone.status, old: _telefoon.stand), the AH wage
+ * (_phone.wage, old: _telefoon.loon), the to-do (todo.items) and the Canvas check marks (dashboard_canvas_done).
  */
 object Dash {
     const val URL = "https://pakweewdaxaaxupdpfyu.supabase.co"
@@ -23,6 +23,7 @@ object Dash {
     private var access: String? = null
     private var expires = 0L
     private var userId: String? = null
+    private const val WRONG_PASSPHRASE = "That passphrase is wrong."
 
     fun gekoppeld(context: Context) = Prefs(context).get(PW) != null
 
@@ -34,7 +35,7 @@ object Dash {
         return r
     }
 
-    /** Wachtzin → wachtwoord, één keer inloggen om te controleren. Geeft een foutmelding of null. Duurt een paar seconden. */
+    /** Passphrase → password, log in once to check. Returns an error message or null. Takes a few seconds. */
     fun koppel(context: Context, wachtzin: String): String? {
         val spec = PBEKeySpec(wachtzin.toCharArray(), "dashboard-supabase-v1:$URL".toByteArray(), 600000, 256)
         val bits = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
@@ -44,14 +45,14 @@ object Dash {
             when {
                 r == null -> {
                     Prefs(context).put(PW, Vault.seal(pw))
-                    // Zelfde wachtzin opent ook de inlogbundel met het archief-token (Data-tabje); mislukt dat, dan werkt de rest gewoon
+                    // The same passphrase also opens the login bundle with the archive token (Data tab); if that fails, the rest still works
                     Archief.koppel(context, wachtzin)
                     null
                 }
                 else -> r
             }
         } catch (e: IOException) {
-            "Geen verbinding met Supabase."
+            "No connection to Supabase."
         }
     }
 
@@ -72,7 +73,7 @@ object Dash {
             userId = j.optJSONObject("user")?.optString("id")
             return null
         }
-        return if (r.code == 400) "Die wachtzin klopt niet." else "Inloggen lukt niet (fout ${r.code})."
+        return if (r.code == 400) WRONG_PASSPHRASE else "Logging in failed (error ${r.code})."
     }
 
     @Synchronized
@@ -81,7 +82,7 @@ object Dash {
         access?.let { if (System.currentTimeMillis() < expires) return it }
         val pw = Prefs(context).get(PW)?.let { Vault.open(it) } ?: throw NeedLogin()
         val fout = login(pw)
-        if (fout != null) { if (fout.startsWith("Die wachtzin")) throw NeedLogin(); throw IOException(fout) }
+        if (fout != null) { if (fout == WRONG_PASSPHRASE) throw NeedLogin(); throw IOException(fout) }
         return access!!
     }
 
@@ -90,30 +91,31 @@ object Dash {
         val extra = if (prefer != null) mapOf("Prefer" to prefer) else emptyMap()
         var r = call(method, "/rest/v1/$path", body, extra, context = context)
         if (r.code == 401) { synchronized(this) { access = null }; r = call(method, "/rest/v1/$path", body, extra, context = context) }
-        if (r.code !in 200..299) throw IOException("Supabase-fout ${r.code}")
+        if (r.code !in 200..299) throw IOException("Supabase error ${r.code}")
         return r.body
     }
 
-    // ---------- Lezen ----------
-    /** Alles wat Vandaag nodig heeft in één keer: stand, loon, to-do en Canvas-vinkjes. null = niet gekoppeld. */
+    // ---------- Reading ----------
+    /** Everything Today needs in one go: status, wage, to-do and Canvas check marks. null = not linked.
+     *  New keys first (_phone.status, _phone.wage, since dashboard 1.7.0); the old Dutch keys as fallback. */
     @Throws(IOException::class)
     fun haal(context: Context): Gedeeld? {
         if (!gekoppeld(context)) return null
         return try {
-            val rows = JSONArray(rest(context, "GET", "dashboard_settings?select=key,value&key=in.(%22_telefoon.stand%22,%22_telefoon.loon%22,%22todo.items%22)"))
+            val rows = JSONArray(rest(context, "GET", "dashboard_settings?select=key,value&key=in.(%22_phone.status%22,%22_phone.wage%22,%22_telefoon.stand%22,%22_telefoon.loon%22,%22todo.items%22)"))
             val byKey = HashMap<String, Any?>()
             for (i in 0 until rows.length()) rows.getJSONObject(i).let { byKey[it.getString("key")] = it.opt("value") }
             val done = JSONArray(rest(context, "GET", "dashboard_canvas_done?select=item_id,done"))
             val doneSet = HashSet<String>()
             for (i in 0 until done.length()) done.getJSONObject(i).let { if (it.getBoolean("done")) doneSet += it.getString("item_id") }
-            Gedeeld(byKey["_telefoon.stand"] as? JSONObject, byKey["_telefoon.loon"] as? JSONObject, byKey["todo.items"] as? JSONArray, doneSet)
+            Gedeeld((byKey["_phone.status"] ?: byKey["_telefoon.stand"]) as? JSONObject, (byKey["_phone.wage"] ?: byKey["_telefoon.loon"]) as? JSONObject, byKey["todo.items"] as? JSONArray, doneSet)
         } catch (e: NeedLogin) {
             null
         }
     }
 
-    // ---------- Schrijven ----------
-    /** Canvas-opdracht afvinken (zelfde tabel als het dashboard; nieuwste wint). */
+    // ---------- Writing ----------
+    /** Check off a Canvas assignment (same table as the dashboard; newest wins). */
     @Throws(IOException::class, NeedLogin::class)
     fun zetIngeleverd(context: Context, id: String, ingeleverd: Boolean) {
         token(context)
@@ -121,7 +123,7 @@ object Dash {
         rest(context, "POST", "dashboard_canvas_done?on_conflict=user_id,item_id", JSONArray().put(row).toString(), "resolution=merge-duplicates,return=minimal")
     }
 
-    /** De hele to-do-lijst wegschrijven (zoals sync.js: hele lijst, nieuwste wint). */
+    /** Write the whole to-do list (like sync.js: whole list, newest wins). */
     @Throws(IOException::class, NeedLogin::class)
     fun zetTodo(context: Context, items: JSONArray) {
         token(context)
@@ -131,7 +133,7 @@ object Dash {
     }
 }
 
-/** Wat het dashboard voor de telefoon klaarzet, plus de to-do en de vinkjes. */
+/** What the dashboard prepares for the phone, plus the to-do and the check marks. */
 class Gedeeld(val stand: JSONObject?, val loon: JSONObject?, val todo: JSONArray?, val ingeleverd: Set<String>) {
     data class Opdracht(val id: String, val titel: String, val vak: String, val due: Long)
     data class Serie(val titel: String, val over: Int, val nieuw: Int)
@@ -142,7 +144,7 @@ class Gedeeld(val stand: JSONObject?, val loon: JSONObject?, val todo: JSONArray
     }
     val series: List<Serie> get() {
         val arr = stand?.optJSONObject("episodes")?.optJSONArray("rows") ?: return emptyList()
-        return List(arr.length()) { arr.getJSONObject(it) }.map { Serie(it.optString("title"), it.optInt("left"), it.optInt("nieuw")) }
+        return List(arr.length()) { arr.getJSONObject(it) }.map { Serie(it.optString("title"), it.optInt("left"), it.optInt("new", it.optInt("nieuw"))) }
     }
     val episodesTijd: Long? get() = stand?.optJSONObject("episodes")?.optLong("at")?.takeIf { it > 0 }
     val mail: Int? get() = stand?.optJSONObject("mail")?.let { if (it.has("count")) it.optInt("count") else null }
@@ -150,7 +152,7 @@ class Gedeeld(val stand: JSONObject?, val loon: JSONObject?, val todo: JSONArray
     val checkinsVandaag: Int? get() = stand?.optJSONObject("checkin")?.let {
         if (it.optString("day") == java.time.LocalDate.now().toString()) it.optInt("count") else 0
     }
-    // Fase B (dashboard 1.6.0): film van vanavond en Spotify-maand
+    // Phase B (dashboard 1.6.0): film tonight and Spotify month
     data class Film(val titel: String, val jaar: String?, val verwacht: Double?, val poster: String?)
     data class Top(val naam: String, val sub: String, val beeld: String?)
     val film: Film? get() = stand?.optJSONObject("film")?.let {

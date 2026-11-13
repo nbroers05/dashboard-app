@@ -28,7 +28,7 @@ object PlannerData {
             mapOf("Authorization" to "Bearer ${Supabase.token(context)}") + (if (prefer != null) mapOf("Prefer" to prefer) else emptyMap()), body)
         var r = once()
         if (r.code == 401) { Supabase.forgetAccess(); r = once() }
-        if (r.code !in 200..299) throw IOException("Supabase-fout ${r.code}")
+        if (r.code !in 200..299) throw IOException("Supabase error ${r.code}")
         return r.body
     }
 

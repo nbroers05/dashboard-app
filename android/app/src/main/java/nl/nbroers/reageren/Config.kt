@@ -2,11 +2,12 @@ package nl.nbroers.reageren
 
 import android.content.Context
 
-/** Dezelfde twee waarden als planner/config.js. De sleutel is bedoeld om openbaar te zijn; de beveiliging zit in Row Level Security. */
+/** The same two values as planner/config.js. The key is meant to be public; the security is in Row Level Security. */
 const val SUPABASE_URL = "https://osqcctmvnvsawbjqgjkp.supabase.co"
 const val SUPABASE_KEY = "sb_publishable_XMjRxWBxSsSvDfZJa9cDaw_6RDGtEm0"
 
-/** loose: de app geeft niet altijd aan dat iets een chatbericht is, en stuurt ook meldingen zonder echte afzender. */
+/** loose: the app doesn't always mark something as a chat message, and also sends notifications without a real sender.
+ *  The labels are stored in planner_replies.app, so they stay as they are (also the Dutch Samsung/Google names). */
 class ChatApp(val pkg: String, val label: String, val onByDefault: Boolean, val loose: Boolean = false)
 
 val CHAT_APPS = listOf(
@@ -25,7 +26,7 @@ val CHAT_APPS = listOf(
     ChatApp("com.google.android.apps.messaging", "Google Berichten", false),
 )
 
-/** Instellingen, op dit apparaat. */
+/** Settings, on this device. */
 class Prefs(context: Context) {
     private val p = context.applicationContext.getSharedPreferences("reageren", Context.MODE_PRIVATE)
 

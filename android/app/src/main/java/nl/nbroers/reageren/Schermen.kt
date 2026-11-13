@@ -42,9 +42,10 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-internal val NL = Locale("nl", "NL")
+/** Locale for dates and numbers on screen (English since 0.8.0; the name stays so all callers keep working). */
+internal val NL: Locale = Locale.UK
 
-/** Wordt opgehoogd als de app weer in beeld komt (MainActivity.onResume): schermen halen dan opnieuw op. */
+/** Raised when the app comes back into view (MainActivity.onResume): screens then fetch again. */
 object Wakker { var tel by mutableIntStateOf(0) }
 
 @Composable
@@ -56,7 +57,7 @@ internal fun Scherm(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
-/** Tikt elke minuut, zodat tijden en "nu" kloppen. */
+/** Ticks every minute, so times and "now" stay right. */
 @Composable
 internal fun minuut(): Long {
     var nu by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -74,12 +75,12 @@ internal fun kleurVan(a: Afspraak, k: NHKleuren): Color = when {
     else -> k.lineSoft
 }
 
-// Fietsen naar de dienst (25 min ervoor): droog of regen, alleen als het binnen het buienradarvenster valt
+// Cycling to the shift (25 min before): dry or rain, only when it falls within the Buienradar window
 internal fun fietsZin(a: Afspraak, w: Weer?): String {
     val tijden = "${Tijd.uur(a.start)} - ${Tijd.uur(a.eind)}"
     val vertrek = a.start - 25 * 60000
     val slot = w?.regen?.firstOrNull { vertrek >= it.first && vertrek < it.first + 5 * 60000 } ?: return tijden
-    return "$tijden · fiets: ${if (slot.second >= WeerBron.REGEN_MIN) "regen" else "droog"}"
+    return "$tijden · bike: ${if (slot.second >= WeerBron.REGEN_MIN) "rain" else "dry"}"
 }
 
 @Composable
@@ -100,7 +101,7 @@ internal fun RegenStaafjes(w: Weer) {
     }
 }
 
-// ================= Reageren =================
+// ================= Reply =================
 @Composable
 fun ReagerenScherm(naarInstellingen: () -> Unit) {
     val context = LocalContext.current
@@ -119,7 +120,7 @@ fun ReagerenScherm(naarInstellingen: () -> Unit) {
                 if (l != null) lijst = l
                 fout = null
             } catch (e: Exception) {
-                fout = "Geen verbinding, ik probeer het zo opnieuw."
+                fout = "No connection, I'll try again shortly."
             }
         }
     }
@@ -127,35 +128,35 @@ fun ReagerenScherm(naarInstellingen: () -> Unit) {
 
     Scherm {
         val alle = lijst ?: emptyList()
-        Kop("wacht op jou", if (lijst == null) "Reageren" else "${alle.size} ${if (alle.size == 1) "gesprek" else "gesprekken"}") {
+        Kop("waiting for you", if (lijst == null) "Reply" else "${alle.size} ${if (alle.size == 1) "chat" else "chats"}") {
             Box(Modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = naarInstellingen).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                Text("instellingen", style = NHTekst.label, color = k.muted)
+                Text("settings", style = NHTekst.label, color = k.muted)
             }
         }
         if (nietIngelogd) {
-            Venster("nog-reageren.exe", "返信") {
-                Text("Log in met de mail en het wachtwoord van de planner (Instellingen).", style = NHTekst.body, color = k.ink)
-                Knop("Naar instellingen", hoofd = true, onClick = naarInstellingen)
+            Venster("reply.exe", "返信") {
+                Text("Log in with the planner's email and password (Settings).", style = NHTekst.body, color = k.ink)
+                Knop("To settings", hoofd = true, onClick = naarInstellingen)
             }
             return@Scherm
         }
         fout?.let { Text(it, style = NHTekst.small, color = k.muted) }
 
         val perTab = Reageren.TABS.associateWith { t -> alle.filter { Reageren.tabVan(it.app) == t } }
-        val zichtbaar = Reageren.TABS.filter { it != "overig" || perTab[it]!!.isNotEmpty() }
-        // Standaard: het tabje met de oudste wachtende (zoals de planner)
+        val zichtbaar = Reageren.TABS.filter { it != "other" || perTab[it]!!.isNotEmpty() }
+        // Default: the tab with the oldest waiting one (like the planner)
         val gekozen = tab?.takeIf { it in zichtbaar } ?: alle.minByOrNull { it.since }?.let { Reageren.tabVan(it.app) } ?: "whatsapp"
         val rijen = perTab[gekozen]!!.sortedBy { it.since }
-        Venster("nog-reageren.exe", "返信", zonderRand = true) {
+        Venster("reply.exe", "返信", zonderRand = true) {
             Tabjes(zichtbaar.map { it to perTab[it]!!.size }, zichtbaar.indexOf(gekozen)) { tab = zichtbaar[it] }
-            if (lijst == null && fout == null) Text("ophalen_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
-            else if (rijen.isEmpty()) Lijntekening(Tekening.Klaar, "$gekozen: niks open.", breedte = 130.dp)
+            if (lijst == null && fout == null) Text("loading_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
+            else if (rijen.isEmpty()) Lijntekening(Tekening.Klaar, "$gekozen: nothing open.", breedte = 130.dp)
             else rijen.forEachIndexed { i, w ->
                 if (i > 0) Scheiding()
                 val oud = System.currentTimeMillis() - w.since > 2 * 24 * 3600000L
                 Rij(
                     w.person, Tijd.wachtTijd(w.since), let = oud,
-                    sub = w.bericht ?: "${if (gekozen == "dating" || gekozen == "overig") "${w.app} · " else ""}sinds ${Tijd.uur(w.since)}",
+                    sub = w.bericht ?: "${if (gekozen == "dating" || gekozen == "other") "${w.app} · " else ""}since ${Tijd.uur(w.since)}",
                 ) {
                     Box(
                         Modifier.padding(start = 6.dp).size(44.dp).clickable(role = Role.Button) {
@@ -170,7 +171,7 @@ fun ReagerenScherm(naarInstellingen: () -> Unit) {
     }
 }
 
-// ================= Instellingen =================
+// ================= Settings =================
 @Composable
 fun InstellingenScherm(onTerug: () -> Unit) {
     val context = LocalContext.current
@@ -184,68 +185,70 @@ fun InstellingenScherm(onTerug: () -> Unit) {
     val ingelogd = remember(wakker, ververs) { Supabase.loggedIn(context) }
 
     Scherm {
-        Kop("dashboard", "Instellingen") {
+        Kop("dashboard", "Settings") {
             Box(Modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onTerug).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                Text("terug", style = NHTekst.label, color = k.muted)
+                Text("back", style = NHTekst.label, color = k.muted)
             }
         }
 
-        Venster("toegang.exe", "設定") {
+        Venster("access.exe", "設定") {
             val regels = mutableListOf(
-                "Toegang tot meldingen: ${if (toegang) "aan" else "uit"}",
-                "Ingelogd: ${if (ingelogd) "ja" else "nee"}",
-                "Agenda van de telefoon: ${if (Agenda.magLezen(context)) "ja" else "nee"}",
+                "Notification access: ${if (toegang) "on" else "off"}",
+                "Logged in: ${if (ingelogd) "yes" else "no"}",
+                "Phone calendar: ${if (Agenda.magLezen(context)) "yes" else "no"}",
             )
-            prefs.get("status.sent")?.toLongOrNull()?.let { regels += "Laatst doorgegeven: ${Tijd.dagKort(it)} ${Tijd.uur(it)}" }
+            prefs.get("status.sent")?.toLongOrNull()?.let { regels += "Last sent: ${Tijd.dagKort(it)} ${Tijd.uur(it)}" }
             val wachtrij = Outbox.waiting(context)
-            if (wachtrij > 0) regels += "Wacht op verzending: $wachtrij"
+            if (wachtrij > 0) regels += "Waiting to be sent: $wachtrij"
             prefs.get("status.error")?.let { regels += it }
             regels.forEach { Text(it, style = NHTekst.small, color = k.ink) }
             Spacer(Modifier.height(4.dp))
-            if (!toegang) Knop("Toegang tot meldingen geven", hoofd = true) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
-            Knop("Accu-instelling openen") {
+            if (!toegang) Knop("Give notification access", hoofd = true) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+            Knop("Open battery setting") {
                 context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
             }
-            Text("Zet bij Accu de app op Onbeperkt, anders kan Samsung hem stilleggen. Toegang tot meldingen is ook nodig om te zien wat er speelt.", style = NHTekst.small, color = k.muted)
+            Text("Under Battery set the app to Unrestricted, otherwise Samsung may stop it. Notification access is also needed to see what's playing.", style = NHTekst.small, color = k.muted)
         }
 
         if (!ingelogd) Inloggen { ververs++ }
         else Venster("account.exe", "鍵") {
-            Text("Ingelogd met je planner-account.", style = NHTekst.body, color = k.ink)
-            Knop("Uitloggen") { Supabase.signOut(context); ververs++ }
+            Text("Logged in with your planner account.", style = NHTekst.body, color = k.ink)
+            Knop("Log out") { Supabase.signOut(context); ververs++ }
         }
 
-        // Dashboard: één keer de wachtzin, voor AH-netto, Canvas-vinkjes, to-do, Episodes en mail
+        // Dashboard: the passphrase once, for AH net pay, Canvas check marks, to-do, Episodes and mail
         val dash = remember(wakker, ververs) { Dash.gekoppeld(context) }
         if (!dash) Wachtzin { ververs++ }
         else Venster("dashboard.exe", "鍵") {
-            Text("Gekoppeld aan het dashboard.", style = NHTekst.body, color = k.ink)
-            Knop("Ontkoppelen") { Dash.ontkoppel(context); ververs++ }
+            Text("Linked to the dashboard.", style = NHTekst.body, color = k.ink)
+            Knop("Unlink") { Dash.ontkoppel(context); ververs++ }
         }
 
         Venster("apps.exe", "返信", zonderRand = true) {
             CHAT_APPS.forEach { app -> Vinkje(app.label, prefs.isOn(app)) { prefs.setOn(app, it) } }
             Scheiding()
-            Vinkje("Ook groepsgesprekken", prefs.groups) { prefs.groups = it }
+            Vinkje("Group chats too", prefs.groups) { prefs.groups = it }
         }
 
-        Venster("meldingen.exe", "記録") {
-            Text("Om te controleren of het werkt. Zonder namen en zonder tekst.", style = NHTekst.small, color = k.muted)
+        Venster("notifications.exe", "記録") {
+            Text("To check that it works. Without names and without text.", style = NHTekst.small, color = k.muted)
             Text(remember(wakker, ververs) { Diag.read(context) }, style = NHTekst.label.copy(fontSize = 11.sp, lineHeight = 15.sp), color = k.ink)
         }
 
-        // Laatste crash (selecteerbaar, om door te sturen); weg met de knop
+        // Last crash (selectable, to pass on); removed with the button
         prefs.get("crash.last")?.let { crash ->
             Venster("crash.exe", "記録") {
-                Text("De app is afgesloten door deze fout. Stuur een screenshot van de eerste regels.", style = NHTekst.small, color = k.muted)
+                Text("The app closed because of this error. Send a screenshot of the first lines.", style = NHTekst.small, color = k.muted)
                 androidx.compose.foundation.text.selection.SelectionContainer {
                     Text(crash.lines().take(14).joinToString("\n"), style = NHTekst.label.copy(fontSize = 10.sp, lineHeight = 13.sp), color = k.ink)
                 }
-                Knop("Weghalen") { prefs.put("crash.last", null); ververs++ }
+                Knop("Remove") { prefs.put("crash.last", null); ververs++ }
             }
         }
 
-        Text("Versie ${context.packageManager.getPackageInfo(context.packageName, 0).versionName}", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(bottom = 16.dp))
+        UpdateVenster(altijd = true)
+
+        Text("Version ${context.packageManager.getPackageInfo(context.packageName, 0).versionName}", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(bottom = 16.dp))
     }
 }
 
@@ -281,12 +284,12 @@ private fun Inloggen(onKlaar: () -> Unit) {
         bezig = false
         if (f == null) { wachtwoord = ""; Outbox.kick(context); onKlaar() } else fout = f
     }
-    Venster("inloggen.exe", "鍵") {
-        Text("Met dezelfde mail en hetzelfde wachtwoord als de planner.", style = NHTekst.small, color = k.muted)
-        Veld("Mail", mail, KeyboardType.Email, false) { mail = it }
-        Veld("Wachtwoord", wachtwoord, KeyboardType.Password, true) { wachtwoord = it }
+    Venster("login.exe", "鍵") {
+        Text("With the same email and password as the planner.", style = NHTekst.small, color = k.muted)
+        Veld("Email", mail, KeyboardType.Email, false) { mail = it }
+        Veld("Password", wachtwoord, KeyboardType.Password, true) { wachtwoord = it }
         fout?.let { Text(it, style = NHTekst.small, color = k.red) }
-        Knop(if (bezig) "Bezig…" else "Inloggen", hoofd = true) { if (!bezig) { fout = null; poging++ } }
+        Knop(if (bezig) "Working…" else "Log in", hoofd = true) { if (!bezig) { fout = null; poging++ } }
     }
 }
 
@@ -306,10 +309,10 @@ internal fun Wachtzin(alleenArchief: Boolean = false, onKlaar: () -> Unit) {
         if (f == null) { zin = ""; onKlaar() } else fout = f
     }
     Venster("dashboard.exe", "鍵") {
-        Text(if (alleenArchief) "Eén keer je wachtzin, voor je cijfers, Memory Lane en check-ins uit het data-archief. De wachtzin zelf wordt niet bewaard." else "Eén keer je wachtzin, dezelfde als bij inloggen op het dashboard. Dan staan AH-netto, Canvas-vinkjes, to-do, Episodes, mail en je data-archief hier ook. De wachtzin zelf wordt niet bewaard.", style = NHTekst.small, color = k.muted)
-        Veld("Wachtzin", zin, KeyboardType.Password, true) { zin = it }
+        Text(if (alleenArchief) "Your passphrase once, for your numbers, Memory Lane and check-ins from the data archive. The passphrase itself is not stored." else "Your passphrase once, the same as when logging in on the dashboard. Then AH net pay, Canvas check marks, to-do, Episodes, mail and your data archive are here too. The passphrase itself is not stored.", style = NHTekst.small, color = k.muted)
+        Veld("Passphrase", zin, KeyboardType.Password, true) { zin = it }
         fout?.let { Text(it, style = NHTekst.small, color = k.red) }
-        Knop(if (bezig) "Even rekenen…" else "Koppelen", hoofd = true) { if (!bezig && zin.isNotEmpty()) { fout = null; poging++ } }
+        Knop(if (bezig) "Calculating…" else "Link", hoofd = true) { if (!bezig && zin.isNotEmpty()) { fout = null; poging++ } }
     }
 }
 

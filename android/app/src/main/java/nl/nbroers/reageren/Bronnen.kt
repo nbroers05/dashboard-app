@@ -25,8 +25,8 @@ import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 import kotlin.math.pow
 
-// ---------- Wat er speelt (mediasessies van de telefoon) ----------
-// Mag dankzij de toegang tot meldingen (ReplyListener): dezelfde toestemming, niks extra koppelen.
+// ---------- What's playing (the phone's media sessions) ----------
+// Allowed thanks to the notification access (ReplyListener): the same permission, nothing extra to link.
 data class Speelt(
     val titel: String,
     val wie: String,
@@ -71,7 +71,7 @@ class Media(private val context: Context, private val onChange: (Speelt?) -> Uni
         current = null
     }
 
-    // Wat nu speelt gaat voor; anders de eerste sessie met een titel (gepauzeerd)
+    // What's playing now comes first; otherwise the first session with a title (paused)
     private fun pick() {
         val list = try { manager.getActiveSessions(component) } catch (e: SecurityException) { geenToegang = true; emptyList() }
         val withTitle = list.filter { it.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE) != null }
@@ -107,8 +107,8 @@ class Media(private val context: Context, private val onChange: (Speelt?) -> Uni
     }
 }
 
-// ---------- Agenda van de telefoon ----------
-// Alleen lezen. AH = "AH" als los woord in de titel (net als het dashboard); Canvas = agenda met "Canvas" in de naam.
+// ---------- The phone's calendar ----------
+// Read-only. AH = "AH" as a separate word in the title (like the dashboard); Canvas = calendar with "Canvas" in its name.
 data class Afspraak(
     val titel: String,
     val plek: String,
@@ -147,18 +147,18 @@ object Agenda {
                 while (c.moveToNext()) {
                     if (c.getInt(7) == CalendarContract.Attendees.ATTENDEE_STATUS_DECLINED) continue
                     val agenda = c.getString(5) ?: ""
-                    // Verborgen agenda's niet, behalve Canvas (die staat op de pc ook verborgen en heeft een eigen vak)
+                    // Not hidden calendars, except Canvas (that one is hidden on the PC too and has its own box)
                     if (c.getInt(6) == 0 && !agenda.contains("canvas", true)) continue
                     val allDay = c.getInt(4) == 1
                     var start = c.getLong(2)
                     var end = c.getLong(3)
                     if (allDay) {
-                        // Hele-dag-afspraken staan in UTC-middernacht: omzetten naar de eigen dag
+                        // All-day events are at UTC midnight: convert to the own day
                         val zone = ZoneId.systemDefault()
                         start = Instant.ofEpochMilli(start).atZone(ZoneId.of("UTC")).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
                         end = Instant.ofEpochMilli(end).atZone(ZoneId.of("UTC")).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
                     }
-                    out += Afspraak(c.getString(0) ?: "(geen titel)", c.getString(1) ?: "", start, end, allDay, agenda)
+                    out += Afspraak(c.getString(0) ?: "(no title)", c.getString(1) ?: "", start, end, allDay, agenda)
                 }
             }
         } catch (e: SecurityException) { }
@@ -169,7 +169,7 @@ object Agenda {
     fun weekStart(): LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 }
 
-// ---------- Weer (Open-Meteo) en regen (Buienradar), Rotterdam ----------
+// ---------- Weather (Open-Meteo) and rain (Buienradar), Rotterdam ----------
 data class Weer(val temp: Double?, val code: Int?, val regen: List<Pair<Long, Double>>, val zonOnder: Long?, val perUur: Map<Long, Double> = emptyMap())
 
 object WeerBron {
@@ -183,7 +183,7 @@ object WeerBron {
             c.connectTimeout = 10000
             c.readTimeout = 10000
             c.setRequestProperty("User-Agent", "dashboard-app")
-            if (c.responseCode != 200) throw IOException("fout ${c.responseCode}")
+            if (c.responseCode != 200) throw IOException("error ${c.responseCode}")
             return c.inputStream.bufferedReader().use { it.readText() }
         } finally {
             c.disconnect()
@@ -208,7 +208,7 @@ object WeerBron {
         return Weer(temp, code, regen, zonOnder, perUur)
     }
 
-    // "val|HH:MM" per 5 minuten, komende 2 uur; mm/u = 10^((val-109)/32)
+    // "val|HH:MM" per 5 minutes, next 2 hours; mm/h = 10^((val-109)/32)
     private fun buienradar(): List<Pair<Long, Double>> {
         val text = get("https://gpsgadget.buienradar.nl/data/raintext?lat=$LAT&lon=$LON")
         val now = System.currentTimeMillis()
@@ -220,7 +220,7 @@ object WeerBron {
             val v = parts[0].trim().toIntOrNull() ?: return@mapNotNull null
             val (h, m) = parts[1].trim().split(":").map { it.toIntOrNull() ?: return@mapNotNull null }
             var t = today.atTime(h, m).atZone(zone).toInstant().toEpochMilli()
-            if (t < now - 12 * 3600000) t += 24 * 3600000   // na middernacht
+            if (t < now - 12 * 3600000) t += 24 * 3600000   // after midnight
             t to (if (v == 0) 0.0 else 10.0.pow((v - 109) / 32.0))
         }
     }
@@ -229,53 +229,53 @@ object WeerBron {
         val now = System.currentTimeMillis()
         val slots = w.regen.filter { it.first + 5 * 60000 > now }
         if (slots.isEmpty()) return omschrijving(w.code)
-        val nat = slots.firstOrNull { it.second >= REGEN_MIN } ?: return "Droog, komende 2 uur"
+        val nat = slots.firstOrNull { it.second >= REGEN_MIN } ?: return "Dry, next 2 hours"
         if (nat.first <= now) {
             val droog = slots.dropWhile { it.second >= REGEN_MIN }.firstOrNull()
-            return if (droog != null) "Regen tot ${Tijd.uur(droog.first)}" else "Regen, komende 2 uur"
+            return if (droog != null) "Rain until ${Tijd.uur(droog.first)}" else "Rain, next 2 hours"
         }
-        return "Droog tot ${Tijd.uur(nat.first)}"
+        return "Dry until ${Tijd.uur(nat.first)}"
     }
 
-    /** "droog" of "buien" op een moment: binnen 2 uur uit Buienradar, daarna per uur uit Open-Meteo; null = te ver weg. */
+    /** "dry", "rain" or "showers" at a moment: within 2 hours from Buienradar, after that per hour from Open-Meteo; null = too far away. */
     fun opMoment(w: Weer?, ms: Long): String? {
         w ?: return null
-        w.regen.firstOrNull { ms >= it.first && ms < it.first + 5 * 60000 }?.let { return if (it.second >= REGEN_MIN) "regen" else "droog" }
+        w.regen.firstOrNull { ms >= it.first && ms < it.first + 5 * 60000 }?.let { return if (it.second >= REGEN_MIN) "rain" else "dry" }
         val uur = ms - Math.floorMod(ms, 3600000L)
         val mm = w.perUur[uur] ?: return null
-        return if (mm >= 0.2) "buien" else "droog"
+        return if (mm >= 0.2) "showers" else "dry"
     }
 
     fun omschrijving(code: Int?) = when (code) {
         null -> ""
-        0 -> "Helder"
-        1, 2 -> "Half bewolkt"
-        3 -> "Bewolkt"
-        45, 48 -> "Mist"
-        in 51..67 -> "Regen"
-        in 71..77 -> "Sneeuw"
-        in 80..82 -> "Buien"
-        in 85..86 -> "Sneeuwbuien"
-        in 95..99 -> "Onweer"
+        0 -> "Clear"
+        1, 2 -> "Partly cloudy"
+        3 -> "Cloudy"
+        45, 48 -> "Fog"
+        in 51..67 -> "Rain"
+        in 71..77 -> "Snow"
+        in 80..82 -> "Showers"
+        in 85..86 -> "Snow showers"
+        in 95..99 -> "Thunderstorm"
         else -> ""
     }
 }
 
-// ---------- Nog reageren (Supabase, planner_replies) ----------
+// ---------- Still to reply (Supabase, planner_replies) ----------
 data class Wacht(val person: String, val app: String, val since: Long, val bericht: String?)
 
 object Reageren {
-    // Zelfde tabjes als de planner
-    val TABS = listOf("whatsapp", "snap", "insta", "dating", "overig")
+    // Same tabs as the planner
+    val TABS = listOf("whatsapp", "snap", "insta", "dating", "other")
     fun tabVan(app: String) = when {
         app.startsWith("WhatsApp", true) -> "whatsapp"
         app.equals("Snapchat", true) -> "snap"
         app.equals("Instagram", true) -> "insta"
         app.equals("Hinge", true) || app.equals("Tinder", true) || app.equals("Bumble", true) -> "dating"
-        else -> "overig"
+        else -> "other"
     }
 
-    /** null = niet ingelogd. Gooit IOException bij geen verbinding. */
+    /** null = not logged in. Throws IOException without a connection. */
     @Throws(IOException::class)
     fun lijst(context: Context): List<Wacht>? {
         if (!Supabase.loggedIn(context)) return null
@@ -286,7 +286,7 @@ object Reageren {
         return try {
             var r = req()
             if (r.code == 401) { Supabase.forgetAccess(); r = req() }
-            if (r.code !in 200..299) throw IOException("fout ${r.code}")
+            if (r.code !in 200..299) throw IOException("error ${r.code}")
             val arr = JSONArray(r.body)
             List(arr.length()) { i ->
                 val o = arr.getJSONObject(i)
@@ -301,26 +301,26 @@ object Reageren {
         }
     }
 
-    /** Regel weghalen (zelfde als het kruisje in de planner). */
+    /** Remove a row (same as the cross in the planner). */
     fun weg(context: Context, w: Wacht) = Outbox.answered(w.person, w.app, context)
 }
 
-// ---------- Tijd ----------
+// ---------- Time ----------
 object Tijd {
     private val zone get() = ZoneId.systemDefault()
     fun uur(ms: Long): String = Instant.ofEpochMilli(ms).atZone(zone).toLocalTime().let { "%02d:%02d".format(it.hour, it.minute) }
-    private val DAGEN = listOf("ma", "di", "wo", "do", "vr", "za", "zo")
+    private val DAGEN = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     fun dagKort(ms: Long): String = DAGEN[Instant.ofEpochMilli(ms).atZone(zone).dayOfWeek.value - 1]
     fun wachtTijd(ms: Long): String {
         val min = ((System.currentTimeMillis() - ms) / 60000).coerceAtLeast(0)
         return when {
             min < 60 -> "$min min"
-            min < 48 * 60 -> "${min / 60} uur"
-            else -> "${min / (24 * 60)} dagen"
+            min < 48 * 60 -> "${min / 60} h"
+            else -> "${min / (24 * 60)} days"
         }
     }
     fun over(ms: Long): String {
         val min = ((ms - System.currentTimeMillis()) / 60000).coerceAtLeast(0)
-        return if (min < 60) "${min}m" else "${min / 60}u ${min % 60}m"
+        return if (min < 60) "${min}m" else "${min / 60}h ${min % 60}m"
     }
 }

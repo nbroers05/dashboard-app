@@ -103,17 +103,17 @@ object Outbox {
             }
             when {
                 result.code in 200..299 || result.code == 409 -> Result.DONE
-                result.code == 404 -> { prefs.put("status.error", "Tabel niet gevonden: draai supabase.sql in Supabase."); Result.RETRY }
-                // De regel zelf staat er dan al; alleen het bericht kan nog nergens heen
-                result.body.contains("last_message") -> { prefs.put("status.error", "Laatste bericht werkt pas na supabase.sql opnieuw draaien."); Result.DONE }
-                result.code in 400..499 -> { prefs.put("status.error", "Supabase weigerde een regel (fout ${result.code})."); Result.DONE }
-                else -> { prefs.put("status.error", "Supabase gaf fout ${result.code}, probeert opnieuw."); Result.RETRY }
+                result.code == 404 -> { prefs.put("status.error", "Table not found: run supabase.sql in Supabase."); Result.RETRY }
+                // The row itself is already there then; only the message has nowhere to go yet
+                result.body.contains("last_message") -> { prefs.put("status.error", "Last message only works after running supabase.sql again."); Result.DONE }
+                result.code in 400..499 -> { prefs.put("status.error", "Supabase refused a row (error ${result.code})."); Result.DONE }
+                else -> { prefs.put("status.error", "Supabase gave error ${result.code}, trying again."); Result.RETRY }
             }
         } catch (e: NeedLogin) {
-            prefs.put("status.error", "Opnieuw inloggen nodig.")
+            prefs.put("status.error", "Logging in again is needed.")
             Result.STOP
         } catch (e: IOException) {
-            prefs.put("status.error", "Geen verbinding, probeert opnieuw.")
+            prefs.put("status.error", "No connection, trying again.")
             Result.RETRY
         }
     }

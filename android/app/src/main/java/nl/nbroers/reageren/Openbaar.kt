@@ -35,7 +35,7 @@ object Openbaar {
             c.connectTimeout = 10000
             c.readTimeout = 15000
             c.setRequestProperty("User-Agent", "dashboard-app (telefoon)")
-            if (c.responseCode != 200) throw IOException("fout ${c.responseCode}")
+            if (c.responseCode != 200) throw IOException("error ${c.responseCode}")
             return c.inputStream.bufferedReader().use { it.readText() }
         } finally {
             c.disconnect()
@@ -78,7 +78,7 @@ object Openbaar {
     data class Bericht(val bron: String, val titel: String, val link: String, val tijd: Long?)
     fun feeds(): Map<String, List<Bericht>> {
         val j = JSONObject(get("$DATA/feeds.json?t=${System.currentTimeMillis() / 600000}"))
-        return listOf("news" to "nieuws", "film" to "film", "youtube" to "youtube").associate { (key, naam) ->
+        return listOf("news" to "news", "film" to "film", "youtube" to "youtube").associate { (key, naam) ->
             val groepen = j.optJSONArray(key) ?: JSONArray()
             naam to (0 until groepen.length()).flatMap { g ->
                 val groep = groepen.getJSONObject(g)
@@ -93,8 +93,8 @@ object Openbaar {
 
     // ---------- F1 (Jolpica, zelfde als widgets/f1.js) ----------
     data class Sessie(val gp: String, val naam: String, val start: Long, val eind: Long)
-    private val SESSIES = listOf("FirstPractice" to ("VT1" to 60), "SecondPractice" to ("VT2" to 60), "ThirdPractice" to ("VT3" to 60),
-        "SprintQualifying" to ("Sprint-kwali" to 45), "SprintShootout" to ("Sprint-kwali" to 45), "Sprint" to ("Sprint" to 45), "Qualifying" to ("Kwali" to 60))
+    private val SESSIES = listOf("FirstPractice" to ("FP1" to 60), "SecondPractice" to ("FP2" to 60), "ThirdPractice" to ("FP3" to 60),
+        "SprintQualifying" to ("Sprint quali" to 45), "SprintShootout" to ("Sprint quali" to 45), "Sprint" to ("Sprint" to 45), "Qualifying" to ("Quali" to 60))
     fun f1(): List<Sessie> {
         fun jaar(y: Int): List<Sessie> {
             val races = JSONObject(get("https://api.jolpi.ca/ergast/f1/$y/races/?format=json&limit=100")).getJSONObject("MRData").getJSONObject("RaceTable").optJSONArray("Races") ?: JSONArray()

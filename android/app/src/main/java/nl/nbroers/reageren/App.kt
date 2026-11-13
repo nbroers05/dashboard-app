@@ -41,14 +41,14 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
 
-// Tabjes onderin (mockup "telefoon-app", tweede versie)
+// Tabs at the bottom (mockup "phone app", second version)
 private const val VANDAAG = 0
 private const val PLANNER = 1
 private const val MEDIA = 2
 private const val DATA = 3
 private const val REAGEREN = 4
 
-// ---------- De app: vijf tabjes, minispeler erboven (niet op Media), instellingen en to-do als eigen scherm ----------
+// ---------- The app: five tabs, mini player above them (not on Media), settings and to-do as their own screen ----------
 @Composable
 fun App() {
     val context = LocalContext.current
@@ -56,7 +56,7 @@ fun App() {
     var instellingen by rememberSaveable { mutableStateOf(false) }
     var todo by rememberSaveable { mutableStateOf(false) }
 
-    // Wat er speelt: één keer voor de hele app (minispeler, Vandaag, Media)
+    // What's playing: once for the whole app (mini player, Today, Media)
     var speelt by remember { mutableStateOf<Speelt?>(null) }
     var mediaZonderToegang by remember { mutableStateOf(false) }
     val wakker = Wakker.tel
@@ -86,12 +86,12 @@ fun App() {
         if (!instellingen && !todo) {
             val s = speelt
             if (s != null && tab != MEDIA) Minispeler(s) { tab = MEDIA }
-            Onderbalk(listOf("vandaag", "planner", "media", "data", "reageren"), tab) { tab = it }
+            Onderbalk(listOf("today", "planner", "media", "data", "reply"), tab) { tab = it }
         }
     }
 }
 
-// ---------- Minispeler ----------
+// ---------- Mini player ----------
 @Composable
 private fun Minispeler(s: Speelt, onTik: () -> Unit) {
     val k = LocalNH.current
@@ -122,7 +122,7 @@ internal fun Hoes(s: Speelt, maat: Int) {
     }
 }
 
-// ---------- Gedeeld met het dashboard (Supabase van het dashboard) ----------
+// ---------- Shared with the dashboard (the dashboard's Supabase) ----------
 @Composable
 internal fun rememberGedeeld(nu: Long): Pair<Gedeeld?, (Gedeeld) -> Unit> {
     val context = LocalContext.current
@@ -136,10 +136,10 @@ internal fun rememberGedeeld(nu: Long): Pair<Gedeeld?, (Gedeeld) -> Unit> {
 
 private fun groet(): String {
     val h = LocalTime.now().hour
-    return when { h < 6 -> "Goedenacht"; h < 12 -> "Goedemorgen"; h < 18 -> "Goedemiddag"; else -> "Goedenavond" }
+    return when { h < 6 -> "Good night"; h < 12 -> "Good morning"; h < 18 -> "Good afternoon"; else -> "Good evening" }
 }
 
-// ================= Vandaag =================
+// ================= Today =================
 @Composable
 fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: () -> Unit) {
     val context = LocalContext.current
@@ -149,7 +149,7 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
     val vandaag = LocalDate.now()
     val scope = rememberCoroutineScope()
 
-    // Agenda van de telefoon: 5 weken terug (AH-periode) tot 5 weken vooruit
+    // The phone's calendar: 5 weeks back (AH period) to 5 weeks ahead
     var magAgenda by remember { mutableStateOf(Agenda.magLezen(context)) }
     val vraag = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { magAgenda = it }
     var afspraken by remember { mutableStateOf<List<Afspraak>>(emptyList()) }
@@ -171,11 +171,11 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
     val morgen = dagStart + 24 * 3600000L
     val ah = afspraken.filter { it.isAH }
     val volgende = ah.firstOrNull { it.eind > nu }
-    // Open Canvas-opdrachten: uit de stand van het dashboard (met id's), zonder wat al is afgevinkt
+    // Open Canvas assignments: from the dashboard's status (with ids), without what's already checked off
     val opdrachten = gedeeld?.opdrachten?.filter { it.id !in gedeeld.ingeleverd && it.due > nu - 7 * 24 * 3600000L }?.sortedBy { it.due } ?: emptyList()
 
     Scherm {
-        // ---- Kop: datum, groet, klok ----
+        // ---- Header: date, greeting, clock ----
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text("${vandaag.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, NL)} ${vandaag.dayOfMonth} ${maandKort(vandaag)} · week ${weekNummer(vandaag)}", style = NHTekst.label, color = k.muted)
@@ -184,24 +184,27 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
             Text(Tijd.uur(nu), style = NHTekst.label.copy(fontSize = 40.sp, lineHeight = 42.sp), color = k.ink)
         }
 
-        // ---- Dagregel als chips ----
+        // ---- New app version (checked on start, see Update.kt) ----
+        UpdateVenster(altijd = false)
+
+        // ---- Day line as chips ----
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (volgende != null && volgende.start < morgen) Chip(if (volgende.start <= nu) "appie tot ${Tijd.uur(volgende.eind)}" else "appie ${Tijd.uur(volgende.start)}", k.ah, k.onAh, k.ah)
+            if (volgende != null && volgende.start < morgen) Chip(if (volgende.start <= nu) "appie until ${Tijd.uur(volgende.eind)}" else "appie ${Tijd.uur(volgende.start)}", k.ah, k.onAh, k.ah)
             else if (volgende == null || volgende.start >= morgen) {
                 val morgenEerste = afspraken.firstOrNull { !it.isCanvas && !it.heleDag && it.start >= morgen && it.start < morgen + 24 * 3600000L }
-                if (LocalTime.now().hour >= 18 && morgenEerste != null) Chip("morgen: ${if (morgenEerste.isAH) "appie" else morgenEerste.titel.lowercase()} ${Tijd.uur(morgenEerste.start)}", Color.Transparent, k.ink, k.line)
+                if (LocalTime.now().hour >= 18 && morgenEerste != null) Chip("tomorrow: ${if (morgenEerste.isAH) "appie" else morgenEerste.titel.lowercase()} ${Tijd.uur(morgenEerste.start)}", Color.Transparent, k.ink, k.line)
             }
-            weer?.let { w -> WeerBron.zin(w).takeIf { it.isNotBlank() }?.let { Chip(it.lowercase().replace(", komende 2 uur", ""), Color.Transparent, k.ink, k.line) } }
+            weer?.let { w -> WeerBron.zin(w).takeIf { it.isNotBlank() }?.let { Chip(it.lowercase().replace(", next 2 hours", ""), Color.Transparent, k.ink, k.line) } }
             opdrachten.firstOrNull { it.due > nu && it.due - nu < 3 * 24 * 3600000L }?.let {
                 Chip("canvas: ${if (it.due < morgen) Tijd.uur(it.due) else Tijd.dagKort(it.due)}", Color.Transparent, k.red, k.red)
             }
         }
 
-        // ---- weer.exe + appie.exe ----
+        // ---- weather.exe + appie.exe ----
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-            Venster("weer.exe", "天気", Modifier.weight(1f).fillMaxHeight()) {
+            Venster("weather.exe", "天気", Modifier.weight(1f).fillMaxHeight()) {
                 val w = weer
-                if (w == null) Text("weer ophalen_", style = NHTekst.label, color = k.muted)
+                if (w == null) Text("loading weather_", style = NHTekst.label, color = k.muted)
                 else {
                     Text(w.temp?.let { "%.0f°".format(it) } ?: "–", style = NHTekst.getal, color = k.ink)
                     Text(WeerBron.zin(w), style = NHTekst.small, color = k.ink)
@@ -209,13 +212,13 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
                 }
             }
             Venster("appie.exe", "仕事", Modifier.weight(1f).fillMaxHeight()) {
-                if (!magAgenda) Text("Agenda nodig", style = NHTekst.small, color = k.muted)
+                if (!magAgenda) Text("Calendar needed", style = NHTekst.small, color = k.muted)
                 else {
                     val vandaagDienst = volgende != null && volgende.start < morgen
-                    Text(if (vandaagDienst) "vandaag" else "volgende dienst", style = NHTekst.small, color = k.muted)
+                    Text(if (vandaagDienst) "today" else "next shift", style = NHTekst.small, color = k.muted)
                     Text(
                         when {
-                            volgende == null -> "geen gepland"
+                            volgende == null -> "none planned"
                             vandaagDienst -> "${Tijd.uur(volgende.start)} - ${Tijd.uur(volgende.eind)}"
                             else -> "${Tijd.dagKort(volgende.start)} ${Tijd.uur(volgende.start)}"
                         },
@@ -225,29 +228,29 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
                     val uren = ah.filter { it.start >= weekVan && it.start < weekVan + 7 * 24 * 3600000L }.sumOf { it.eind - it.start } / 3600000.0
                     val loon = gedeeld?.loon?.let { Loon(it) }?.takeIf { it.bruikbaar }
                     val netto = loon?.let { l -> Loon.periode(afspraken, nu).let { (a, b) -> l.netto(ah, a, b) } }
-                    Text("${"%.1f".format(NL, uren).removeSuffix(",0")} u${if (netto != null) " · ≈ € ${"%.0f".format(netto)}" else ""}", style = NHTekst.small, color = k.muted)
+                    Text("${"%.1f".format(NL, uren).removeSuffix(".0")} h${if (netto != null) " · ≈ € ${"%.0f".format(NL, netto)}" else ""}", style = NHTekst.small, color = k.muted)
                 }
             }
         }
 
         if (!magAgenda) Venster("agenda.exe", "予定") {
-            Text("Laat de app de agenda van je telefoon lezen. Dan staan je diensten hier zonder iets te koppelen.", style = NHTekst.small, color = k.muted)
-            Knop("Agenda van de telefoon gebruiken", hoofd = true) { vraag.launch(Manifest.permission.READ_CALENDAR) }
+            Text("Let the app read your phone's calendar. Then your shifts are here without linking anything.", style = NHTekst.small, color = k.muted)
+            Knop("Use the phone's calendar", hoofd = true) { vraag.launch(Manifest.permission.READ_CALENDAR) }
         }
 
         // ---- canvas.exe ----
         Venster("canvas.exe", "締切", zonderRand = true) {
             when {
                 !gekoppeld -> Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Koppel het dashboard (je wachtzin, één keer) voor je Canvas-deadlines met vinkjes.", style = NHTekst.small, color = k.muted)
-                    Knop("Naar instellingen", onClick = naarInstellingen)
+                    Text("Link the dashboard (your passphrase, once) for your Canvas deadlines with check marks.", style = NHTekst.small, color = k.muted)
+                    Knop("To settings", onClick = naarInstellingen)
                 }
-                gedeeld == null -> Text("ophalen_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
-                opdrachten.isEmpty() -> Text("Niks meer in te leveren.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
+                gedeeld == null -> Text("loading_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
+                opdrachten.isEmpty() -> Text("Nothing left to hand in.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
                 else -> opdrachten.take(4).forEachIndexed { i, o ->
                     if (i > 0) Scheiding()
                     CanvasRij(o, nu) {
-                        // Meteen weg uit de lijst; daarna naar Supabase (zelfde vinkjes als op de pc)
+                        // Gone from the list at once; then to Supabase (same check marks as on the PC)
                         val g = gedeeld
                         zetGedeeld(Gedeeld(g.stand, g.loon, g.todo, g.ingeleverd + o.id))
                         scope.launch(Dispatchers.IO) { try { Dash.zetIngeleverd(context, o.id, true) } catch (e: Exception) { } }
@@ -256,18 +259,18 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
             }
         }
 
-        // ---- meldingen.exe ----
-        Venster("meldingen.exe", "通知", zonderRand = true) {
+        // ---- notifications.exe ----
+        Venster("notifications.exe", "通知", zonderRand = true) {
             val regels = mutableListOf<@Composable () -> Unit>()
-            wachten?.let { n -> regels += { Rij("$n nog reageren", "reageren", onClick = { naar(REAGEREN) }) } }
+            wachten?.let { n -> regels += { Rij("$n still to reply", "reply", onClick = { naar(REAGEREN) }) } }
             gedeeld?.series?.filter { it.nieuw > 0 }?.takeIf { it.isNotEmpty() }?.let { nieuw ->
                 val n = nieuw.sumOf { it.nieuw }
-                regels += { Rij("Episodes Left", "media", sub = if (n == 1) "1 nieuwe aflevering" else "$n nieuwe afleveringen", onClick = { naar(MEDIA) }) }
+                regels += { Rij("Episodes Left", "media", sub = if (n == 1) "1 new episode" else "$n new episodes", onClick = { naar(MEDIA) }) }
             }
             gedeeld?.mail?.takeIf { it > 0 }?.let { n ->
-                regels += { Rij("Mail", "gmail", sub = "$n ongelezen${gedeeld.mailVan?.let { " · $it" } ?: ""}", onClick = { openGmail(context) }) }
+                regels += { Rij("Mail", "gmail", sub = "$n unread${gedeeld.mailVan?.let { " · $it" } ?: ""}", onClick = { openGmail(context) }) }
             }
-            if (regels.isEmpty()) Text("Niks aan de hand.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
+            if (regels.isEmpty()) Text("All quiet.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
             regels.forEachIndexed { i, r -> if (i > 0) Scheiding(); r() }
         }
 
@@ -275,11 +278,11 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
             Venster("to-do.exe", "用事", Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClick = naarTodo)) {
                 Text(if (gedeeld == null) "–" else "${gedeeld.todoOpen}", style = NHTekst.getal, color = k.ink)
-                Text("open · tik om te zien", style = NHTekst.small, color = k.muted)
+                Text("open · tap to see", style = NHTekst.small, color = k.muted)
             }
             Venster("check-in.exe", "気分", Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button) { naar(DATA) }) {
                 Text(gedeeld?.checkinsVandaag?.let { "$it×" } ?: "–", style = NHTekst.getal, color = k.ink)
-                Text("vandaag · nu invullen", style = NHTekst.small, color = k.muted)
+                Text("today · fill in now", style = NHTekst.small, color = k.muted)
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -294,7 +297,7 @@ private fun Chip(tekst: String, bg: Color, fg: Color, rand: Color) {
     ) { Text(tekst, style = NHTekst.label, color = fg, maxLines = 1) }
 }
 
-// Canvas-rij: vinkje van 28 dp, de hele rij is het raakvlak
+// Canvas row: 28 dp check box, the whole row is the touch target
 @Composable
 private fun CanvasRij(o: Gedeeld.Opdracht, nu: Long, onAf: () -> Unit) {
     val k = LocalNH.current
@@ -307,7 +310,7 @@ private fun CanvasRij(o: Gedeeld.Opdracht, nu: Long, onAf: () -> Unit) {
         }
         Spacer(Modifier.width(8.dp))
         val laat = o.due < nu
-        Text(if (laat) "te laat" else "${Tijd.dagKort(o.due)} ${Tijd.uur(o.due)}", style = NHTekst.label, color = if (laat || o.due - nu < 24 * 3600000L) k.red else k.muted)
+        Text(if (laat) "late" else "${Tijd.dagKort(o.due)} ${Tijd.uur(o.due)}", style = NHTekst.label, color = if (laat || o.due - nu < 24 * 3600000L) k.red else k.muted)
     }
 }
 
@@ -316,7 +319,7 @@ private fun openGmail(context: Context) {
     context.startActivity(app ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/")))
 }
 
-// ================= To-do (zelfde lijst als op de pc) =================
+// ================= To-do (same list as on the PC) =================
 @Composable
 fun TodoScherm(onTerug: () -> Unit) {
     val context = LocalContext.current
@@ -333,17 +336,17 @@ fun TodoScherm(onTerug: () -> Unit) {
     }
 
     Scherm {
-        Kop("to-do", "Klusjes") {
+        Kop("to-do", "Chores") {
             Box(Modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onTerug).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                Text("terug", style = NHTekst.label, color = k.muted)
+                Text("back", style = NHTekst.label, color = k.muted)
             }
         }
         Venster("to-do.exe", "用事", zonderRand = true) {
             val l = lijst
-            if (!Dash.gekoppeld(context)) Text("Koppel eerst het dashboard in de instellingen (je wachtzin).", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(12.dp))
-            else if (l == null) Text("ophalen_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
+            if (!Dash.gekoppeld(context)) Text("First link the dashboard in the settings (your passphrase).", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(12.dp))
+            else if (l == null) Text("loading_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
             else {
-                if (l.length() == 0) Text("Niks open.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
+                if (l.length() == 0) Text("Nothing open.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
                 for (i in 0 until l.length()) {
                     val item = l.getJSONObject(i)
                     val af = item.optBoolean("done")

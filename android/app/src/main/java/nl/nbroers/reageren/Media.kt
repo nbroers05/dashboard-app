@@ -29,17 +29,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import nl.nbroers.reageren.ui.*
 
-// Filterchips bovenaan (zoals de oude telefoonversie: Alles/Film/Series/F1, plus Feeds)
-private val FILTERS = listOf("alles", "film", "series", "f1", "feeds")
+// Filter chips at the top (like the old phone version: All/Film/Series/F1, plus Feeds)
+private val FILTERS = listOf("all", "film", "series", "f1", "feeds")
 
-// ================= Media (fase B, sinds 0.5.0) =================
+// ================= Media (phase B, since 0.5.0) =================
 @Composable
 fun MediaScherm(speelt: Speelt?, zonderToegang: Boolean) {
     val context = LocalContext.current
     val k = LocalNH.current
     val nu = minuut()
     val wakker = Wakker.tel
-    var filter by rememberSaveable { mutableStateOf("alles") }
+    var filter by rememberSaveable { mutableStateOf("all") }
     val (gedeeld, _) = rememberGedeeld(nu)
 
     var gekeken by remember { mutableStateOf<List<Openbaar.Log>?>(null) }
@@ -69,31 +69,31 @@ fun MediaScherm(speelt: Speelt?, zonderToegang: Boolean) {
             }
         }
 
-        if (filter == "alles") Speler(speelt, zonderToegang)
-        if (filter == "alles" || filter == "film") FilmVenster(gedeeld?.film, gekeken)
-        if (filter == "alles" || filter == "series") Afleveringen(gedeeld)
-        if (filter == "alles" || filter == "f1" || filter == "film") {
+        if (filter == "all") Speler(speelt, zonderToegang)
+        if (filter == "all" || filter == "film") FilmVenster(gedeeld?.film, gekeken)
+        if (filter == "all" || filter == "series") Afleveringen(gedeeld)
+        if (filter == "all" || filter == "f1" || filter == "film") {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
                 if (filter != "film") F1Venster(f1, nu, Modifier.weight(1f).fillMaxHeight())
                 if (filter != "f1") VriendenVenster(vrienden, Modifier.weight(1f).fillMaxHeight())
             }
         }
-        if (filter == "alles") SpotifyMaand(gedeeld)
+        if (filter == "all") SpotifyMaand(gedeeld)
         if (filter == "feeds") FeedsVenster(feeds, context)
         Spacer(Modifier.height(8.dp))
     }
 }
 
-// ---------- Speler met songtekst ----------
+// ---------- Player with lyrics ----------
 @Composable
 private fun Speler(s: Speelt?, zonderToegang: Boolean) {
     val k = LocalNH.current
-    Venster("${s?.app?.lowercase()?.replace(" ", "") ?: "speler"}.exe", "音楽") {
+    Venster("${s?.app?.lowercase()?.replace(" ", "") ?: "player"}.exe", "音楽") {
         when {
-            zonderToegang -> Text("Geef de app toegang tot meldingen (Reageren › instellingen), dan zie je hier wat er speelt.", style = NHTekst.small, color = k.muted)
-            s == null -> Text("Er speelt niks.", style = NHTekst.body, color = k.muted)
+            zonderToegang -> Text("Give the app notification access (Reply › settings), then you see what's playing here.", style = NHTekst.small, color = k.muted)
+            s == null -> Text("Nothing is playing.", style = NHTekst.body, color = k.muted)
             else -> {
-                // Positie: uit de mediasessie, bijgehouden zolang er iets speelt
+                // Position: from the media session, kept up while something plays
                 var pos by remember(s.titel) { mutableLongStateOf(0L) }
                 LaunchedEffect(s.titel, s.speelt) {
                     while (true) {
@@ -122,7 +122,7 @@ private fun Speler(s: Speelt?, zonderToegang: Boolean) {
                         }
                     }
                 }
-                // Songtekst: regel ervoor, de regel die nu klinkt groot, regel erna
+                // Lyrics: the line before, the line playing now big, the line after
                 val t = tekst
                 if (!t.isNullOrEmpty()) {
                     val i = t.indexOfLast { it.first <= pos + 300 }
@@ -134,26 +134,26 @@ private fun Speler(s: Speelt?, zonderToegang: Boolean) {
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Knop("Vorige", modifier = Modifier.weight(1f)) { s.controller.transportControls.skipToPrevious() }
-                    Knop(if (s.speelt) "Pauze" else "Spelen", hoofd = true, modifier = Modifier.weight(1f)) {
+                    Knop("Previous", modifier = Modifier.weight(1f)) { s.controller.transportControls.skipToPrevious() }
+                    Knop(if (s.speelt) "Pause" else "Play", hoofd = true, modifier = Modifier.weight(1f)) {
                         if (s.speelt) s.controller.transportControls.pause() else s.controller.transportControls.play()
                     }
-                    Knop("Volgende", modifier = Modifier.weight(1f)) { s.controller.transportControls.skipToNext() }
+                    Knop("Next", modifier = Modifier.weight(1f)) { s.controller.transportControls.skipToNext() }
                 }
             }
         }
     }
 }
 
-// ---------- Film: vanavond / laatst gekeken ----------
+// ---------- Film: tonight / last watched ----------
 @Composable
 private fun FilmVenster(film: Gedeeld.Film?, gekeken: List<Openbaar.Log>?) {
     val k = LocalNH.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
     Venster("film.exe", "映画", zonderRand = true) {
-        Tabjes(listOf("vanavond" to null, "laatst gekeken" to null), tab) { tab = it }
+        Tabjes(listOf("tonight" to null, "last watched" to null), tab) { tab = it }
         if (tab == 0) {
-            if (film == null) Text("Film van vanavond komt van het dashboard op de pc (Sterrenvoorspeller).", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(12.dp))
+            if (film == null) Text("Tonight's film comes from the dashboard on the PC (Sterrenvoorspeller).", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(12.dp))
             else {
                 var bios by remember(film.titel) { mutableStateOf<Openbaar.Voorstelling?>(null) }
                 LaunchedEffect(film.titel) { bios = withContext(Dispatchers.IO) { Openbaar.bios(film.titel) } }
@@ -165,17 +165,17 @@ private fun FilmVenster(film: Gedeeld.Film?, gekeken: List<Openbaar.Log>?) {
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(film.titel, style = NHTekst.titelM, color = k.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(listOfNotNull(film.jaar, film.verwacht?.let { "verwacht ${"%.1f".format(NL, it)}" }, "watchlist").joinToString(" · "), style = NHTekst.small, color = k.muted)
+                        Text(listOfNotNull(film.jaar, film.verwacht?.let { "predicted ${"%.1f".format(NL, it)}" }, "watchlist").joinToString(" · "), style = NHTekst.small, color = k.muted)
                         bios?.let { b ->
-                            val wanneer = b.volgende?.let { "${Tijd.dagKort(it)} ${Tijd.uur(it)}" } ?: b.tot?.let { "t/m $it" } ?: ""
-                            Text("bios: ${b.bios} $wanneer".trim(), style = NHTekst.small, color = k.ink)
+                            val wanneer = b.volgende?.let { "${Tijd.dagKort(it)} ${Tijd.uur(it)}" } ?: b.tot?.let { "until $it" } ?: ""
+                            Text("cinema: ${b.bios} $wanneer".trim(), style = NHTekst.small, color = k.ink)
                         }
                     }
                 }
             }
         } else {
             val logs = gekeken
-            if (logs == null) Text("ophalen_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
+            if (logs == null) Text("loading_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
             else Row(Modifier.horizontalScroll(rememberScrollState()).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 logs.take(12).forEach { l -> Poster(l, null) }
             }
@@ -204,17 +204,17 @@ private fun sterren(c: Double?): String {
 @Composable
 private fun Afleveringen(g: Gedeeld?) {
     val k = LocalNH.current
-    Venster("afleveringen.exe", "話数", zonderRand = true) {
+    Venster("episodes.exe", "話数", zonderRand = true) {
         val series = g?.series ?: emptyList()
         when {
-            g == null -> Text("Koppel het dashboard (instellingen) voor Episodes Left.", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(12.dp))
-            series.isEmpty() -> Text("Alles bijgekeken.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
+            g == null -> Text("Link the dashboard (settings) for Episodes Left.", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(12.dp))
+            series.isEmpty() -> Text("All caught up.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
             else -> series.sortedByDescending { it.nieuw * 1000 + it.over }.forEachIndexed { i, s ->
                 if (i > 0) Scheiding()
-                Rij(s.titel, "nog ${s.over}", sub = when (s.nieuw) { 0 -> null; 1 -> "1 nieuwe aflevering"; else -> "${s.nieuw} nieuwe afleveringen" })
+                Rij(s.titel, "${s.over} left", sub = when (s.nieuw) { 0 -> null; 1 -> "1 new episode"; else -> "${s.nieuw} new episodes" })
             }
         }
-        g?.episodesTijd?.let { Text("stand van de pc, ${Tijd.dagKort(it).takeIf { _ -> System.currentTimeMillis() - it > 20 * 3600000L } ?: ""} ${Tijd.uur(it)}".replace("  ", " "), style = NHTekst.small, color = k.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) }
+        g?.episodesTijd?.let { Text("status from the PC, ${Tijd.dagKort(it).takeIf { _ -> System.currentTimeMillis() - it > 20 * 3600000L } ?: ""} ${Tijd.uur(it)}".replace("  ", " "), style = NHTekst.small, color = k.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) }
     }
 }
 
@@ -227,10 +227,10 @@ private fun F1Venster(sessies: List<Openbaar.Sessie>?, nu: Long, modifier: Modif
         val bezig = sessies?.firstOrNull { it.start <= nu2 && it.eind > nu2 }
         val volgende = sessies?.firstOrNull { it.start > nu2 }
         when {
-            sessies == null -> Text("ophalen_", style = NHTekst.label, color = k.muted)
+            sessies == null -> Text("loading_", style = NHTekst.label, color = k.muted)
             bezig != null -> {
                 Text("${bezig.naam} ${bezig.gp}".lowercase(), style = NHTekst.small, color = k.muted)
-                Text("nu bezig", style = NHTekst.label.copy(fontSize = 22.sp, lineHeight = 26.sp), color = k.red)
+                Text("live now", style = NHTekst.label.copy(fontSize = 22.sp, lineHeight = 26.sp), color = k.red)
             }
             volgende != null -> {
                 Text("${volgende.naam} ${volgende.gp}".lowercase(), style = NHTekst.small, color = k.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -239,19 +239,19 @@ private fun F1Venster(sessies: List<Openbaar.Sessie>?, nu: Long, modifier: Modif
                     style = NHTekst.label.copy(fontSize = 24.sp, lineHeight = 28.sp), color = k.ink)
                 Text("${Tijd.dagKort(volgende.start)} ${Tijd.uur(volgende.start)}", style = NHTekst.small, color = k.muted)
             }
-            else -> Text("Seizoen voorbij.", style = NHTekst.small, color = k.muted)
+            else -> Text("Season over.", style = NHTekst.small, color = k.muted)
         }
     }
 }
 
-// ---------- Vrienden ----------
+// ---------- Friends ----------
 @Composable
 private fun VriendenVenster(logs: List<Openbaar.Log>?, modifier: Modifier) {
     val k = LocalNH.current
-    Venster("vrienden.exe", "友達", modifier) {
+    Venster("friends.exe", "友達", modifier) {
         when {
-            logs == null -> Text("ophalen_", style = NHTekst.label, color = k.muted)
-            logs.isEmpty() -> Text("Nog niks gelogd.", style = NHTekst.small, color = k.muted)
+            logs == null -> Text("loading_", style = NHTekst.label, color = k.muted)
+            logs.isEmpty() -> Text("Nothing logged yet.", style = NHTekst.small, color = k.muted)
             else -> logs.take(3).forEach { l ->
                 Text(l.wie ?: "", style = NHTekst.small, color = k.ink, maxLines = 1)
                 Text(sterren(l.cijfer).ifBlank { l.titel }, style = NHTekst.label, color = k.red, maxLines = 1)
@@ -260,7 +260,7 @@ private fun VriendenVenster(logs: List<Openbaar.Log>?, modifier: Modifier) {
     }
 }
 
-// ---------- Spotify-maand ----------
+// ---------- Spotify month ----------
 @Composable
 private fun SpotifyMaand(g: Gedeeld?) {
     val k = LocalNH.current
@@ -268,8 +268,8 @@ private fun SpotifyMaand(g: Gedeeld?) {
     val artiesten = g?.artiesten ?: emptyList()
     if (nummers.isEmpty() && artiesten.isEmpty()) return
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    Venster("maand.exe", "音楽", zonderRand = true) {
-        Tabjes(listOf("nummers" to null, "artiesten" to null), tab) { tab = it }
+    Venster("month.exe", "音楽", zonderRand = true) {
+        Tabjes(listOf("tracks" to null, "artists" to null), tab) { tab = it }
         (if (tab == 0) nummers else artiesten).forEachIndexed { i, t ->
             if (i > 0) Scheiding()
             Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -290,13 +290,13 @@ private fun SpotifyMaand(g: Gedeeld?) {
 private fun FeedsVenster(feeds: Map<String, List<Openbaar.Bericht>>?, context: Context) {
     val k = LocalNH.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val namen = listOf("nieuws", "film", "youtube")
+    val namen = listOf("news", "film", "youtube")
     Venster("feeds.exe", "新聞", zonderRand = true) {
         Tabjes(namen.map { it to null }, tab) { tab = it }
         val lijst = feeds?.get(namen[tab])
         when {
-            feeds == null -> Text("ophalen_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
-            lijst.isNullOrEmpty() -> Text("Niks nieuws.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
+            feeds == null -> Text("loading_", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(12.dp))
+            lijst.isNullOrEmpty() -> Text("Nothing new.", style = NHTekst.body, color = k.muted, modifier = Modifier.padding(12.dp))
             else -> lijst.forEachIndexed { i, b ->
                 if (i > 0) Scheiding()
                 Rij(b.titel, b.tijd?.let { if (System.currentTimeMillis() - it < 20 * 3600000L) Tijd.uur(it) else Tijd.dagKort(it) } ?: "", sub = b.bron,

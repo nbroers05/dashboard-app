@@ -12,11 +12,11 @@ android {
         applicationId = "nl.nbroers.reageren"
         minSdk = 29
         targetSdk = 34
-        versionCode = 8
-        versionName = "0.7.1"
+        versionCode = 9
+        versionName = "0.8.0"
     }
 
-    // De sleutel staat alleen als geheim op GitHub. Altijd dezelfde sleutel, anders kun je een nieuwe versie niet over de oude installeren.
+    // The key is only stored as a secret on GitHub. Always the same key, otherwise a new version can't be installed over the old one.
     signingConfigs {
         create("release") {
             storeFile = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }

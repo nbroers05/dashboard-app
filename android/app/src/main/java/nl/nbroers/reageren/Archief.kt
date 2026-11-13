@@ -47,12 +47,12 @@ object Archief {
         // In de bundel staan de waarden zoals in localStorage: het token als JSON-tekst ("\"github_pat_…\"")
         val raw = payload.optJSONObject("keys")?.optString("data.token").orEmpty()
         val token = if (raw.startsWith("\"")) JSONArray("[$raw]").getString(0) else raw
-        if (token.isBlank()) "In de inlogbundel staat geen archief-token."
+        if (token.isBlank()) "The login bundle has no archive token."
         else { Prefs(context).put(TOKEN, Vault.seal(token)); null }
     } catch (e: javax.crypto.AEADBadTagException) {
-        "Die wachtzin klopt niet."
+        "That passphrase is wrong."
     } catch (e: Exception) {
-        "Archief koppelen lukt niet (${e.javaClass.simpleName})."
+        "Linking the archive failed (${e.javaClass.simpleName})."
     }
 
     private fun token(context: Context): String = Prefs(context).get(TOKEN)?.let { Vault.open(it) } ?: throw NeedLogin()
@@ -86,7 +86,7 @@ object Archief {
         val r = call(context, "GET", path, raw = true)
         if (r.code == 404) return null
         if (r.code == 401) throw NeedLogin()
-        if (r.code != 200) throw IOException("GitHub-fout ${r.code}")
+        if (r.code != 200) throw IOException("GitHub error ${r.code}")
         return r.body
     }
 
@@ -153,7 +153,7 @@ object Archief {
                 } else {
                     nieuw = COLS.joinToString(",") + "\n" + rijen.joinToString("\n") { r -> COLS.joinToString(",") { esc(r.opt(it)) } } + "\n"
                 }
-                val put = JSONObject().put("message", "Check-in ${rijen.first().getString("timestamp_utc")} (telefoon)")
+                val put = JSONObject().put("message", "Check-in ${rijen.first().getString("timestamp_utc")} (phone)")
                     .put("content", Base64.encodeToString(nieuw.toByteArray(), Base64.NO_WRAP))
                 if (sha != null) put.put("sha", sha)
                 val r = call(context, "PUT", path, put.toString())

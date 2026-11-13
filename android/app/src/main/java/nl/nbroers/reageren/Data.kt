@@ -28,10 +28,10 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-/** Samenvattingen uit het archief (data/aggregates/<groep>.json → daily). */
+/** Summaries from the archive (data/aggregates/<group>.json → daily). */
 private class Cijfers(val spotify: JSONObject, val buiten: JSONObject, val pc: JSONObject, val stappen: JSONObject)
 
-// ================= Data (fase C, sinds 0.6.0) =================
+// ================= Data (phase C, since 0.6.0) =================
 @Composable
 fun DataScherm() {
     val context = LocalContext.current
@@ -57,15 +57,15 @@ fun DataScherm() {
                 vandaagCheckins = Archief.checkinsVandaag(context)
                 fout = null
             } catch (e: NeedLogin) {
-                fout = "Het archief-token werkt niet meer. Koppel opnieuw met je wachtzin."
+                fout = "The archive token no longer works. Link again with your passphrase."
             } catch (e: Exception) {
-                fout = "Archief niet bereikbaar, ik probeer het zo opnieuw."
+                fout = "Archive not reachable, I'll try again shortly."
             }
         }
     }
 
     Scherm {
-        Kop("deze week", "Data")
+        Kop("this week", "Data")
         if (!archief) {
             Wachtzin(alleenArchief = true) { ververs++ }
             return@Scherm
@@ -77,19 +77,19 @@ fun DataScherm() {
         MemoryVenster(memory)
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Knop("Alle grafieken") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/#mydata"))) }
+            Knop("All charts") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/#mydata"))) }
         }
         Spacer(Modifier.height(8.dp))
     }
 }
 
-// ---------- Check-in: dezelfde vier vragen als op de pc (stemming, energie, focus, stress) ----------
-// Geen waarden of grafieken van eerdere check-ins (afspraak sinds 0.44.17: eerst hypotheses, dan pas kijken).
+// ---------- Check-in: the same four questions as on the PC (mood, energy, focus, stress) ----------
+// No values or charts of earlier check-ins (agreed since 0.44.17: hypotheses first, only then look).
 private val VRAGEN = listOf(
-    Triple("mood", "Hoe gaat het?", "slecht" to "top"),
-    Triple("energy", "Energie", "leeg" to "vol"),
-    Triple("focus", "Focus", "weg" to "scherp"),
-    Triple("stress", "Stress", "rustig" to "veel"),
+    Triple("mood", "How are you?", "bad" to "great"),
+    Triple("energy", "Energy", "empty" to "full"),
+    Triple("focus", "Focus", "gone" to "sharp"),
+    Triple("stress", "Stress", "calm" to "a lot"),
 )
 
 @Composable
@@ -119,30 +119,30 @@ private fun CheckinVenster(vandaag: Int?, onOpgeslagen: () -> Unit) {
                 Text(uiteinden.second, style = NHTekst.small, color = k.muted)
             }
         }
-        Text("Notitie (hoeft niet)", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(top = 4.dp))
+        Text("Note (optional)", style = NHTekst.label, color = k.muted, modifier = Modifier.padding(top = 4.dp))
         BasicTextField(
             notitie, { notitie = it.take(500) }, singleLine = true,
             textStyle = NHTekst.body.copy(color = k.ink), cursorBrush = SolidColor(k.ink),
             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).border(1.dp, k.line).padding(horizontal = 8.dp, vertical = 10.dp),
         )
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(melding ?: vandaag?.let { "vandaag ${it}×" } ?: "", style = NHTekst.small, color = k.muted, modifier = Modifier.weight(1f))
-            Knop("Opslaan", hoofd = true) {
-                if (keuzes.size < VRAGEN.size) { melding = "Vul alle vier in."; return@Knop }
+            Text(melding ?: vandaag?.let { "today ${it}×" } ?: "", style = NHTekst.small, color = k.muted, modifier = Modifier.weight(1f))
+            Knop("Save", hoofd = true) {
+                if (keuzes.size < VRAGEN.size) { melding = "Fill in all four."; return@Knop }
                 val waarden = keuzes
                 val tekst = notitie
                 keuzes = emptyMap(); notitie = ""
                 onOpgeslagen()
                 scope.launch {
                     val gelukt = withContext(Dispatchers.IO) { Archief.checkin(context, waarden, tekst) }
-                    melding = if (gelukt) "Opgeslagen." else "Bewaard; gaat naar het archief zodra het kan."
+                    melding = if (gelukt) "Saved." else "Kept; goes to the archive as soon as it can."
                 }
             }
         }
     }
 }
 
-// ---------- Kerncijfers ----------
+// ---------- Key numbers ----------
 @Composable
 private fun CijfersVenster(c: Cijfers?) {
     val context = LocalContext.current
@@ -151,13 +151,13 @@ private fun CijfersVenster(c: Cijfers?) {
     val laatste7 = (6 downTo 0).map { vandaag.minusDays(it.toLong()).toString() }
     fun som(o: JSONObject?, dagen: List<String>) = dagen.sumOf { o?.optDouble(it, 0.0)?.takeIf { v -> !v.isNaN() } ?: 0.0 }
     fun laatste(o: JSONObject?): Pair<String, Double>? = o?.keys()?.asSequence()?.toList()?.maxOrNull()?.let { it to o.optDouble(it) }
-    fun minuten(m: Double) = if (m >= 60) "${(m / 60).toInt()}u ${"%02d".format((m % 60).toInt())}m" else "${m.toInt()} min"
+    fun minuten(m: Double) = if (m >= 60) "${(m / 60).toInt()}h ${"%02d".format((m % 60).toInt())}m" else "${m.toInt()} min"
     fun wanneer(dag: String): String {
         val d = LocalDate.parse(dag)
-        return when (d) { vandaag -> "vandaag"; vandaag.minusDays(1) -> "gisteren"; else -> Tijd.dagKort(Agenda.dagStart(d) + 12 * 3600000L) }
+        return when (d) { vandaag -> "today"; vandaag.minusDays(1) -> "yesterday"; else -> Tijd.dagKort(Agenda.dagStart(d) + 12 * 3600000L) }
     }
 
-    // Appie deze maand uit de agenda van de telefoon
+    // Appie this month from the phone's calendar
     var ahUren by remember { mutableStateOf<Double?>(null) }
     LaunchedEffect(Unit) {
         ahUren = withContext(Dispatchers.IO) {
@@ -168,25 +168,25 @@ private fun CijfersVenster(c: Cijfers?) {
         }
     }
 
-    Venster("cijfers.exe", "記録") {
-        if (c == null) { Text("ophalen_", style = NHTekst.label, color = k.muted); return@Venster }
+    Venster("numbers.exe", "記録") {
+        if (c == null) { Text("loading_", style = NHTekst.label, color = k.muted); return@Venster }
         val buiten = laatste(c.buiten)
         val stappen = laatste(c.stappen)
         Column(Modifier.fillMaxWidth().border(1.dp, k.lineSoft)) {
             Row(Modifier.height(IntrinsicSize.Min)) {
-                Tegel("spotify", minuten(som(c.spotify, laatste7)), "deze week", Modifier.weight(1f))
+                Tegel("spotify", minuten(som(c.spotify, laatste7)), "this week", Modifier.weight(1f))
                 Box(Modifier.width(1.dp).fillMaxHeight().background(k.lineSoft))
-                Tegel("appie", ahUren?.let { "${"%.1f".format(NL, it).removeSuffix(",0")} u" } ?: "–", vandaag.month.getDisplayName(java.time.format.TextStyle.FULL, NL), Modifier.weight(1f))
+                Tegel("appie", ahUren?.let { "${"%.1f".format(NL, it).removeSuffix(".0")} h" } ?: "–", vandaag.month.getDisplayName(java.time.format.TextStyle.FULL, NL), Modifier.weight(1f))
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(k.lineSoft))
             Row(Modifier.height(IntrinsicSize.Min)) {
-                Tegel("buiten", buiten?.let { minuten(it.second) } ?: "–", buiten?.let { wanneer(it.first) } ?: "", Modifier.weight(1f))
+                Tegel("outside", buiten?.let { minuten(it.second) } ?: "–", buiten?.let { wanneer(it.first) } ?: "", Modifier.weight(1f))
                 Box(Modifier.width(1.dp).fillMaxHeight().background(k.lineSoft))
-                Tegel("stappen", stappen?.let { "%,d".format(NL, it.second.toLong()) } ?: "–", stappen?.let { wanneer(it.first) } ?: "", Modifier.weight(1f))
+                Tegel("steps", stappen?.let { "%,d".format(NL, it.second.toLong()) } ?: "–", stappen?.let { wanneer(it.first) } ?: "", Modifier.weight(1f))
             }
         }
-        // Pc-uren deze week (ma t/m zo) als staafjes
-        Text("pc-uren deze week", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(top = 8.dp))
+        // PC hours this week (Mon to Sun) as bars
+        Text("PC hours this week", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(top = 8.dp))
         val ma = vandaag.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val week = (0..6).map { ma.plusDays(it.toLong()) }
         val waarden = week.map { c.pc.optDouble(it.toString(), 0.0).takeIf { v -> !v.isNaN() } ?: 0.0 }
@@ -197,7 +197,7 @@ private fun CijfersVenster(c: Cijfers?) {
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf("ma", "di", "wo", "do", "vr", "za", "zo").forEach { Text(it, style = NHTekst.label.copy(fontSize = 11.sp), color = k.muted, modifier = Modifier.weight(1f)) }
+            listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { Text(it, style = NHTekst.label.copy(fontSize = 11.sp), color = k.muted, modifier = Modifier.weight(1f)) }
         }
     }
 }
@@ -212,20 +212,20 @@ private fun Tegel(label: String, waarde: String, sub: String, modifier: Modifier
     }
 }
 
-// ---------- Memory Lane: vandaag in eerdere jaren; tik = volgend jaar ----------
+// ---------- Memory Lane: today in earlier years; tap = next year ----------
 @Composable
 private fun MemoryVenster(days: JSONObject?) {
     val k = LocalNH.current
     val vandaag = LocalDate.now()
     val md = "%02d-%02d".format(vandaag.monthValue, vandaag.dayOfMonth)
     val perJaar = days?.optJSONObject(md)?.let { o -> o.keys().asSequence().mapNotNull { y -> y.toIntOrNull()?.takeIf { it < vandaag.year }?.let { it to o.getJSONObject(y) } }.toList() } ?: emptyList()
-    // Rijkste jaar eerst (zoals memory.js: films en agenda tellen zwaarder)
+    // Richest year first (like memory.js: films and calendar count more)
     fun score(d: JSONObject) = d.keys().asSequence().count { it != "w" } + (if (d.has("f")) 2 else 0) + (if (d.has("ag")) 1 else 0)
     val jaren = perJaar.filter { (_, d) -> d.keys().asSequence().any { it != "w" } }.sortedWith(compareByDescending<Pair<Int, JSONObject>> { score(it.second) }.thenByDescending { it.first })
     var keuze by remember(md) { mutableIntStateOf(0) }
     if (days == null) return
-    Venster("vroeger.exe", "思い出", Modifier.clickable(role = Role.Button, enabled = jaren.size > 1) { keuze = (keuze + 1) % jaren.size }) {
-        if (jaren.isEmpty()) { Text("Nog niks van deze dag in eerdere jaren.", style = NHTekst.small, color = k.muted); return@Venster }
+    Venster("memories.exe", "思い出", Modifier.clickable(role = Role.Button, enabled = jaren.size > 1) { keuze = (keuze + 1) % jaren.size }) {
+        if (jaren.isEmpty()) { Text("Nothing from this day in earlier years yet.", style = NHTekst.small, color = k.muted); return@Venster }
         val (jaar, d) = jaren[keuze % jaren.size]
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
@@ -234,26 +234,26 @@ private fun MemoryVenster(days: JSONObject?) {
             }
             Text("$jaar", style = NHTekst.titelL, color = k.red)
         }
-        if (jaren.size > 1) Text("tik voor ${jaren.size - 1} ander${if (jaren.size == 2) "" else "e"} jaar${if (jaren.size == 2) "" else "en"}", style = NHTekst.label.copy(fontSize = 11.sp), color = k.muted)
+        if (jaren.size > 1) Text("tap for ${jaren.size - 1} other year${if (jaren.size == 2) "" else "s"}", style = NHTekst.label.copy(fontSize = 11.sp), color = k.muted)
     }
 }
 
-// Zelfde onderdelen als memory.js, zonder emoji
+// Same parts as memory.js, without emoji
 private fun regels(d: JSONObject): List<String> {
     val out = mutableListOf<String>()
     d.optJSONArray("ag")?.let { ag ->
         (0 until ag.length()).mapNotNull { ag.optJSONArray(it) }.forEach { a ->
-            out += when (a.optString(0)) { "ah" -> a.optString(1).replace("AH-dienst", "Appie"); "tentamen" -> "Toets: ${a.optString(1)}"; else -> a.optString(1) }
+            out += when (a.optString(0)) { "ah" -> a.optString(1).replace("AH-dienst", "Appie").replace("AH shift", "Appie"); "tentamen" -> "Exam: ${a.optString(1)}"; else -> a.optString(1) }
         }
     }
     d.optJSONArray("f")?.let { f ->
         if (f.length() == 1) f.optJSONArray(0)?.let { x -> out += "Film: ${x.optString(0)}${if (!x.isNull(2)) " " + "★".repeat(x.optDouble(2).toInt()) + (if (x.optDouble(2) % 1 >= 0.5) "½" else "") else ""}" }
         else if (f.length() > 1) out += "${f.length()} films"
     }
-    d.optJSONArray("out")?.let { o -> if (!o.isNull(0)) out += "${"%.1f".format(NL, o.optDouble(0))} u buiten" }
-    d.optJSONArray("yt")?.let { y -> out += "${y.optInt(0)} video's${if (y.length() > 1 && !y.isNull(1)) " · meest ${y.optString(1)}" else ""}" }
-    if (d.has("st")) out += "%,d stappen".format(NL, d.optLong("st"))
-    if (d.has("ph")) d.optInt("ph").let { out += "$it foto${if (it == 1) "" else "'s"}" }
-    d.optJSONArray("w")?.let { w -> if (!w.isNull(0)) out += "${w.optDouble(0).toInt()}°${if (w.optDouble(1, 0.0) >= 1) ", regen" else ""}" }
+    d.optJSONArray("out")?.let { o -> if (!o.isNull(0)) out += "${"%.1f".format(NL, o.optDouble(0))} h outside" }
+    d.optJSONArray("yt")?.let { y -> out += "${y.optInt(0)} videos${if (y.length() > 1 && !y.isNull(1)) " · mostly ${y.optString(1)}" else ""}" }
+    if (d.has("st")) out += "%,d steps".format(NL, d.optLong("st"))
+    if (d.has("ph")) d.optInt("ph").let { out += "$it photo${if (it == 1) "" else "s"}" }
+    d.optJSONArray("w")?.let { w -> if (!w.isNull(0)) out += "${w.optDouble(0).toInt()}°${if (w.optDouble(1, 0.0) >= 1) ", rain" else ""}" }
     return out
 }

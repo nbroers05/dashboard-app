@@ -1,52 +1,57 @@
-# Telefoon-app (Android)
+# Phone app (Android)
 
-De enige app op de S24, in de huisstijl (Noah Huisstijl, Jetpack Compose). Onderin vijf tabjes, met een minispeler erboven zolang er iets speelt (niet op Media; tik = naar Media, knop = pauze):
+The only app on the S24, in the Huisstijl (Noah Huisstijl, Jetpack Compose). Five tabs at the bottom, with a mini player above them while something is playing (not on Media; tap = to Media, button = pause):
 
-- **Vandaag**: groet en klok, de dag als chips (appie, regen, Canvas), weer met buienalarm, appie (vandaag of de volgende dienst, uren deze week en netto), Canvas met vinkjes (dezelfde als op de pc), meldingen (nog reageren, Episodes Left, mail), to-do (tik = de lijst, dezelfde als op de pc) en check-in.
-- **Planner**: lijst, dag of week. Dagstrip ma t/m zo met puntjes per soort (appie, college, deadline, taak); tik = die dag. Lijst: twee weken als rijen per dag, met regencheck onder elke appie-dienst ("vertrek 16:35 droog · 19:00 buien") en aftellen bij een Canvas-deadline; taken vink je af. Dag: tijdlijn met de Standaardweek-blokken (gestippeld = automatisch) en een rode nu-lijn. Week: zeven kolommen. Onderaan gewoontes om af te vinken, met reeks. Uit de Supabase van de planner (zelfde account als Nog reageren) en de agenda van de telefoon. Taken toevoegen of slepen doe je nog op de website.
-- **Media**: filterchips (alles, film, series, f1, feeds). Grote speler met songtekst (LRCLIB, loopt mee), film met tabjes vanavond (van het dashboard, met bios) en laatst gekeken (Letterboxd), Episodes Left (stand van de pc), F1 met aftellen (Jolpica), vrienden (Letterboxd), Spotify-maand (van het dashboard) en feeds (nieuws, filmnieuws, YouTube).
-- **Data**: check-in invullen (dezelfde vier vragen als op de pc: stemming, energie, focus, stress, plus een notitie; gaat naar het privé archief, zonder netwerk eerst in een wachtrij), kerncijfers (Spotify deze week, appie deze maand, buiten, stappen), pc-uren deze week als staafjes, Memory Lane (tik = ander jaar) en "Alle grafieken" naar Mijn data. Leest het privé archief met het archief-token uit de inlogbundel (vault.json), dat de app bij het koppelen met de wachtzin ophaalt.
-- **Reageren**: Nog reageren met tabjes per app, hoe lang iets al wacht (rood na 2 dagen), kruisje om weg te halen. Rechtsboven **instellingen**.
+- **Today**: greeting and clock, the day as chips (appie, rain, Canvas), weather with rain alert, appie (today or the next shift, hours this week and net pay), Canvas with check marks (the same as on the PC), notifications (still to reply, Episodes Left, mail), to-do (tap = the list, the same as on the PC) and check-in. When a newer app version exists, an **update.exe** window with "New version — install" appears here.
+- **Planner**: list, day or week. Day strip Mon to Sun with dots per kind (appie, lecture, deadline, task); tap = that day. List: two weeks as rows per day, with a rain check under every appie shift ("leave 16:35 dry · 19:00 showers") and a countdown for a Canvas deadline; you check off tasks. Day: timeline with the Standard week blocks (dotted = automatic) and a red now line. Week: seven columns. At the bottom habits to check off, with a streak. From the planner's Supabase (same account as Still to reply) and the phone's calendar. Adding or dragging tasks is still done on the website.
+- **Media**: filter chips (all, film, series, f1, feeds). Big player with lyrics (LRCLIB, follows along), film with tabs tonight (from the dashboard, with cinema) and last watched (Letterboxd), Episodes Left (status from the PC), F1 with countdown (Jolpica), friends (Letterboxd), Spotify month (from the dashboard) and feeds (news, film news, YouTube).
+- **Data**: fill in a check-in (the same four questions as on the PC: mood, energy, focus, stress, plus a note; goes to the private archive, without a network first into a queue), key numbers (Spotify this week, appie this month, outside, steps), PC hours this week as bars, Memory Lane (tap = another year) and "All charts" to My data. Reads the private archive with the archive token from the login bundle (vault.json), which the app gets when linking with the passphrase.
+- **Reply**: Still to reply with tabs per app, how long something has been waiting (red after 2 days), a cross to remove it. **settings** at the top right.
 
-Waar het vandaan komt: muziek en agenda van de telefoon zelf; weer en regen rechtstreeks (Open-Meteo, Buienradar); Nog reageren uit de Supabase van de planner; Canvas, to-do, Episodes, mail, check-ins en het AH-loon uit de Supabase van het dashboard (het dashboard op de pc zet Canvas, Episodes, mail en check-ins klaar, dus die lopen achter als de pc uit staat). De netto rekent de app zelf uit met dezelfde formule als het dashboard.
+Where it comes from: music and calendar from the phone itself; weather and rain directly (Open-Meteo, Buienradar); Still to reply from the planner's Supabase; Canvas, to-do, Episodes, mail, check-ins and the AH wage from the dashboard's Supabase (`_phone.status`, `_phone.wage`; the old keys `_telefoon.stand` and `_telefoon.loon` as fallback). The dashboard on the PC prepares Canvas, Episodes, mail and check-ins, so those lag behind while the PC is off. The app calculates the net pay itself with the same formula as the dashboard (`Loon.kt` = `widgets/ah.js`).
 
-Poster, en Titelkaart als de telefoon op donker staat.
+Poster style, and Titelkaart when the phone is set to dark.
 
-De meldingenlezer van Nog reageren werkt zoals eerst: melding van een chat-app = regel; aangetikt of chat geopend = regel weg; zelf weggeveegd of alles wissen = blijft staan. Het laatste bericht staat alleen in Supabase en gaat nooit naar het archief.
+The notification reader of Still to reply works as before: notification from a chat app = row; tapped or chat opened = row gone; swiped away yourself or clear all = stays. The last message is only kept in Supabase and never goes to the archive.
 
-## Installeren of bijwerken (op de telefoon)
+## Updating
 
-1. Open in Firefox: https://github.com/nbroers05/dashboard-app/releases/download/telefoon-v0.7.1/dashboard-telefoon.apk
-2. Open het gedownloade bestand en tik op **Bijwerken** (of Installeren). Vraagt Android om toestemming voor Firefox, zet "Toestaan vanaf deze bron" aan.
-3. Open de app. Op **Vandaag** tik je één keer op **Agenda van de telefoon gebruiken** en kies je Toestaan.
-4. Stond Nog reageren er al op: inloggen en toegang tot meldingen blijven staan. Zo niet: Reageren › instellingen › **Toegang tot meldingen geven** en inloggen met de mail en het wachtwoord van de planner.
-5. Staat de schakelaar bij toegang grijs of krijg je "Beperkte instelling": houd het pictogram ingedrukt, kies **App-info**, tik rechtsboven op **⋮** en kies **Beperkte instellingen toestaan**.
-6. Accu: Reageren › instellingen › **Accu-instelling openen**, ga naar **Accu** en kies **Onbeperkt**.
-7. Dashboard koppelen (één keer; wie al gekoppeld was vóór 0.6.0 doet het op het Data-tabje nog één keer voor het archief): Reageren › instellingen › **dashboard.exe**, typ je wachtzin (dezelfde als bij inloggen op het dashboard) en tik op **Koppelen**. Dat duurt een paar seconden. De wachtzin zelf wordt niet bewaard.
+From 0.8.0 the app updates itself: when you open it, it checks GitHub for the newest release `telefoon-v…`. Is there a newer one, Today and Settings show **New version — install**. Tap it; the first time Android asks to allow installing from Dashboard: turn on **Allow from this source**, go back and tap the button again. Then tap **Update** in Android's installer. Settings › update.exe › **Check now** checks by hand.
 
-De app heet nu **Dashboard** en heeft het 窓-icoon. Het is dezelfde app als Nog reageren (zelfde naam in Android, zelfde sleutel), dus bijwerken gaat over de oude heen.
+## Installing the first time (or 0.7.1 → 0.8.0, by hand)
 
-Zie je bij Vandaag geen colleges of Canvas: dan synchroniseert de Samsung-agenda die agenda's niet. Agenda-app › Instellingen › Agenda's beheren, en zet ze aan.
+1. Open in Firefox: https://github.com/nbroers05/dashboard-app/releases/download/telefoon-v0.8.0/dashboard-telefoon.apk
+2. Open the downloaded file and tap **Update** (or Install). If Android asks for permission for Firefox, turn on "Allow from this source".
+3. Open the app. On **Today** tap **Use the phone's calendar** once and choose Allow.
+4. If Still to reply was already on it: login and notification access stay. If not: Reply › settings › **Give notification access** and log in with the planner's email and password.
+5. If the access switch is grey or you get "Restricted setting": long-press the icon, choose **App info**, tap **⋮** at the top right and choose **Allow restricted settings**.
+6. Battery: Reply › settings › **Open battery setting**, go to **Battery** and choose **Unrestricted**.
+7. Link the dashboard (once): Reply › settings › **dashboard.exe**, type your passphrase (the same as when logging in on the dashboard) and tap **Link**. That takes a few seconds. The passphrase itself is not stored.
 
-## Eenmalig: de sleutel (al gedaan)
+The app is called **Dashboard** and has the 窓 icon. It's the same app as Still to reply (same name in Android, same key), so updating goes over the old one.
 
-Elke versie moet met dezelfde sleutel ondertekend zijn. Die staat als geheim op GitHub (`maak-sleutel.py`, alleen nodig als hij ooit kwijt is; een nieuwe sleutel betekent eerst de app verwijderen).
+If Today shows no lectures or Canvas: the Samsung calendar doesn't sync those calendars. Calendar app › Settings › Manage calendars, and turn them on.
 
-## Als iets niet klopt
+## Once: the key (already done)
 
-Reageren › instellingen › **meldingen.exe** toont wat er met elke melding gebeurde, zonder namen en zonder tekst. Stuur daar een screenshot van.
+Every version must be signed with the same key. It is stored as a secret on GitHub (`maak-sleutel.py`, only needed if it's ever lost; a new key means removing the app first).
 
-## Versies
+## If something isn't right
 
-| Versie | Wat |
+Reply › settings › **notifications.exe** shows what happened to each notification, without names and without text. Send a screenshot of it.
+
+## Versions
+
+| Version | What |
 |---|---|
-| 0.7.1 | Planner sloot de app af zodra er iets zonder tijd in de lijst stond (hele-dag-afspraak of taak zonder tijd): opgelost. Nieuw: crashlog onder Reageren › instellingen (crash.exe), om door te sturen als de app ooit afsluit. |
-| 0.7.0 | **Fase D**: het Planner-tabje zoals de mockup (lijst, dag, week, dagstrip, regencheck, deadlines, gewoontes). Daarmee zijn alle vijf de tabjes er. |
-| 0.6.0 | **Fase C**: het Data-tabje zoals de mockup (check-in, kerncijfers, pc-uren, Memory Lane). Koppelen met de wachtzin haalt nu ook het archief-token uit de inlogbundel. |
-| 0.5.0 | **Fase B**: het Media-tabje zoals de mockup (speler met songtekst, film, Episodes Left, F1, vrienden, Spotify-maand, feeds). |
-| 0.4.0 | **Fase A van de nieuwe mockup**: vijf tabjes (Vandaag, Planner, Media, Data, Reageren) en een minispeler. Vandaag zoals de mockup: groet en klok, chips, weer, appie met netto, Canvas met vinkjes, meldingen (reageren, Episodes, mail), to-do en check-in. Koppelen met het dashboard via je wachtzin. Media, Data en Planner zijn nog eenvoudig. |
-| 0.3.0 | **Telefoon-app, fase 1**: in de huisstijl met drie tabjes. Vandaag (speler, weer, AH-uren, rest van de dag, Canvas), Reageren (lijst uit Supabase met tabjes per app), instellingen als eigen scherm. Naam Dashboard, icoon 窓. Download heet nu `dashboard-telefoon.apk` (tag `telefoon-v…`). |
-| 0.2.0 | Hinge, Tinder en Bumble erbij. Snapchat-meldingen zonder echte afzender eruit. Laatste bericht onder de naam als de app de tekst meestuurt. |
-| 0.1.0 | Eerste versie: meldingen lezen, regels in Supabase zetten en weghalen, apps en groepen instellen. |
+| 0.8.0 | English screen text. Reads `_phone.status` and `_phone.wage` (English wage fields; the old Dutch keys as fallback). Auto-update: checks GitHub for a newer `telefoon-v…` release on start and from Settings, downloads it and opens Android's installer. |
+| 0.7.1 | Planner closed the app as soon as something without a time was in the list (all-day event or task without a time): fixed. New: crash log under Reply › settings (crash.exe), to pass on if the app ever closes. |
+| 0.7.0 | **Phase D**: the Planner tab like the mockup (list, day, week, day strip, rain check, deadlines, habits). With that all five tabs exist. |
+| 0.6.0 | **Phase C**: the Data tab like the mockup (check-in, key numbers, PC hours, Memory Lane). Linking with the passphrase now also gets the archive token from the login bundle. |
+| 0.5.0 | **Phase B**: the Media tab like the mockup (player with lyrics, film, Episodes Left, F1, friends, Spotify month, feeds). |
+| 0.4.0 | **Phase A of the new mockup**: five tabs (Today, Planner, Media, Data, Reply) and a mini player. Linking with the dashboard via your passphrase. |
+| 0.3.0 | **Phone app, phase 1**: in the Huisstijl with three tabs. Name Dashboard, icon 窓. The download is called `dashboard-telefoon.apk` (tag `telefoon-v…`). |
+| 0.2.0 | Hinge, Tinder and Bumble added. Snapchat notifications without a real sender left out. Last message under the name when the app sends the text along. |
+| 0.1.0 | First version: read notifications, put rows in Supabase and remove them, set apps and groups. |
 
-Nieuwe versie: `versionName` en `versionCode` in `app/build.gradle.kts` ophogen. Elke push in deze map bouwt de app en zet hem bij de download van die versie. Lokaal bouwen kan niet (geen Android SDK op de pc); fouten lezen met `gh run view <id> --log-failed`.
+New version: raise `versionName` and `versionCode` in `app/build.gradle.kts`. Every push in this folder builds the app and puts it with the download of that version. Building locally isn't possible (no Android SDK on the PC); read errors with `gh run view <id> --log-failed`.

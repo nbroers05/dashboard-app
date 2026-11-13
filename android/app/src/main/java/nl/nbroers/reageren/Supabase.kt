@@ -86,18 +86,18 @@ object Supabase {
         Prefs(context).put(REFRESH, Vault.seal(json.getString("refresh_token")))
     }
 
-    /** Geeft een foutmelding terug, of null als het gelukt is. */
+    /** Returns an error message, or null when it worked. */
     fun signIn(context: Context, email: String, password: String): String? {
         val body = JSONObject().put("email", email).put("password", password).toString()
         return try {
             val r = call("POST", "$SUPABASE_URL/auth/v1/token?grant_type=password", emptyMap(), body)
             when {
                 r.code == 200 -> { store(context, JSONObject(r.body)); null }
-                r.code == 400 -> "Mail of wachtwoord klopt niet."
-                else -> "Inloggen lukt niet (fout ${r.code})."
+                r.code == 400 -> "Email or password is wrong."
+                else -> "Logging in failed (error ${r.code})."
             }
         } catch (e: IOException) {
-            "Geen verbinding met Supabase."
+            "No connection to Supabase."
         }
     }
 
@@ -123,7 +123,7 @@ object Supabase {
             return access!!
         }
         if (r.code in 400..499) throw NeedLogin()
-        throw IOException("Fout ${r.code}")
+        throw IOException("Error ${r.code}")
     }
 
     fun encode(s: String): String = URLEncoder.encode(s, "UTF-8").replace("+", "%20")

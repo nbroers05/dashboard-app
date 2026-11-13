@@ -10,19 +10,20 @@ import androidx.activity.enableEdgeToEdge
 import nl.nbroers.reageren.ui.NoahTheme
 
 /**
- * De telefoon-app (sinds 0.3.0): drie tabjes (Vandaag, Planner, Reageren) in de huisstijl. De meldingenlezer
- * (ReplyListener) en de wachtrij naar Supabase (Outbox) werken zoals in 0.2.0; hun instellingen staan onder Reageren › instellingen.
+ * The phone app (since 0.3.0): tabs Today, Planner, Media, Data and Reply in the Huisstijl. The notification reader
+ * (ReplyListener) and the queue to Supabase (Outbox) work as in 0.2.0; their settings are under Reply › settings.
+ * Since 0.8.0 it checks GitHub for a newer release on start (Update.kt).
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Crashlog (sinds 0.7.1): de laatste fout bewaren, zodat hij in Reageren › instellingen staat en Noah hem kan doorsturen
+        // Crash log (since 0.7.1): keep the last error, so it shows in Reply › settings and Noah can pass it on
         val vorige = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             try {
                 val sw = java.io.StringWriter()
                 e.printStackTrace(java.io.PrintWriter(sw))
-                Prefs(this).put("crash.last", "${java.time.LocalDateTime.now().withNano(0)} · versie ${packageManager.getPackageInfo(packageName, 0).versionName}\n" + sw.toString().take(4000))
+                Prefs(this).put("crash.last", "${java.time.LocalDateTime.now().withNano(0)} · version ${packageManager.getPackageInfo(packageName, 0).versionName}\n" + sw.toString().take(4000))
             } catch (x: Exception) { }
             vorige?.uncaughtException(t, e)
         }

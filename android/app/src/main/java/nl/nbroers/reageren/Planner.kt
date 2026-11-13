@@ -38,13 +38,13 @@ import java.time.temporal.TemporalAdjusters
 
 private const val DAG_MS = 24 * 3600000L
 
-/** Eén regel in de planner: een afspraak uit de agenda van de telefoon, een taak/blok uit de planner of een deadline. */
+/** One row in the planner: an event from the phone's calendar, a task/block from the planner or a deadline. */
 private data class Item(
     val titel: String, val start: Long?, val eind: Long?, val soort: String,   // ah | college | deadline | taak | blok | afspraak
     val sub: String? = null, val taak: PlannerData.Taak? = null, val kleur: Color? = null, val auto: Boolean = false,
 )
 
-// ================= Planner (fase D, sinds 0.7.0) =================
+// ================= Planner (phase D, since 0.7.0) =================
 @Composable
 fun PlannerScherm() {
     val context = LocalContext.current
@@ -53,11 +53,11 @@ fun PlannerScherm() {
     val wakker = Wakker.tel
     val scope = rememberCoroutineScope()
     val vandaag = LocalDate.now()
-    var weergave by rememberSaveable { mutableStateOf("lijst") }
+    var weergave by rememberSaveable { mutableStateOf("list") }
     var gekozen by rememberSaveable { mutableStateOf(vandaag.toString()) }
     val dag = LocalDate.parse(gekozen)
 
-    // Bronnen
+    // Sources
     var planner by remember { mutableStateOf<PlannerData.Alles?>(null) }
     var nietIngelogd by remember { mutableStateOf(false) }
     var ververs by remember { mutableIntStateOf(0) }
@@ -75,13 +75,13 @@ fun PlannerScherm() {
     LaunchedEffect(wakker, nu / (15 * 60000)) { weer = withContext(Dispatchers.IO) { WeerBron.haal() } }
     val (gedeeld, _) = rememberGedeeld(nu)
 
-    // Alles per dag samenvoegen
+    // Merge everything per day
     fun itemsOp(d: LocalDate): List<Item> {
         val van = Agenda.dagStart(d); val tot = van + DAG_MS
         val out = mutableListOf<Item>()
         afspraken.filter { !it.isCanvas && it.start < tot && it.eind > van }.forEach { a ->
             out += when {
-                a.heleDag -> Item(a.titel, null, null, "afspraak", "hele dag")
+                a.heleDag -> Item(a.titel, null, null, "afspraak", "all day")
                 a.isAH -> Item("Appie", a.start, a.eind, "ah", vertrekZin(a, weer))
                 a.isCollege -> Item(a.titel, a.start, a.eind, "college", a.plek.ifBlank { null })
                 else -> Item(a.titel, a.start, a.eind, "afspraak", a.plek.ifBlank { null })
@@ -94,21 +94,21 @@ fun PlannerScherm() {
         }
         gedeeld?.opdrachten?.filter { it.id !in gedeeld.ingeleverd && it.due >= van && it.due < tot }?.forEach { o ->
             val over = o.due - System.currentTimeMillis()
-            out += Item("${o.titel} inleveren", o.due, null, "deadline",
-                if (over > 0) "deadline · nog ${if (over >= DAG_MS) "${over / DAG_MS}d " else ""}${(over % DAG_MS) / 3600000}u" else "deadline · te laat")
+            out += Item("Hand in ${o.titel}", o.due, null, "deadline",
+                if (over > 0) "deadline · ${if (over >= DAG_MS) "${over / DAG_MS}d " else ""}${(over % DAG_MS) / 3600000}h left" else "deadline · late")
         }
-        // -1L (Long), niet -1: een Int naast Long-tijden gaf een ClassCastException bij het sorteren (crash in 0.7.0)
+        // -1L (Long), not -1: an Int next to Long times gave a ClassCastException when sorting (crash in 0.7.0)
         return out.sortedWith(compareBy<Item>({ it.start ?: -1L }, { it.titel }))
     }
 
     Scherm {
-        // ---- Kop met lijst / dag / week ----
+        // ---- Header with list / day / week ----
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text("week ${weekNummer(dag)}", style = NHTekst.label, color = k.muted)
                 Text("Planner", style = NHTekst.titelL, color = k.ink)
             }
-            listOf("lijst", "dag", "week").forEach { w ->
+            listOf("list", "day", "week").forEach { w ->
                 val on = w == weergave
                 Box(
                     Modifier.padding(start = 6.dp).size(48.dp).background(if (on) k.eva else Color.Transparent, CircleShape)
@@ -118,7 +118,7 @@ fun PlannerScherm() {
             }
         }
 
-        // ---- Dagstrip ma t/m zo met puntjes per soort ----
+        // ---- Day strip Mon to Sun with dots per kind ----
         val ma = dag.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         Row(Modifier.fillMaxWidth().border(1.dp, k.line).background(k.paperRaised)) {
             (0..6).forEach { i ->
@@ -129,7 +129,7 @@ fun PlannerScherm() {
                     Modifier.weight(1f).heightIn(min = 56.dp).background(if (on) k.eva else Color.Transparent).clickable(role = Role.Tab) { gekozen = d.toString() }.padding(vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(listOf("ma", "di", "wo", "do", "vr", "za", "zo")[i], style = NHTekst.label.copy(fontSize = 11.sp), color = if (on) k.onEva else k.muted)
+                    Text(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[i], style = NHTekst.label.copy(fontSize = 11.sp), color = if (on) k.onEva else k.muted)
                     Text("${d.dayOfMonth}", style = NHTekst.bodyStrong.copy(fontWeight = if (d == vandaag) FontWeight.Black else FontWeight.Bold), color = if (on) k.onEva else k.ink)
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.height(6.dp)) {
                         listOf("ah" to k.ah, "college" to (if (on) k.onEva else k.eva), "deadline" to k.red, "taak" to (if (on) k.onEva else k.ink))
@@ -141,7 +141,7 @@ fun PlannerScherm() {
         }
 
         if (nietIngelogd) Venster("planner.exe", "予定") {
-            Text("Log in met je planner-account (Reageren › instellingen) voor je taken, blokken en gewoontes.", style = NHTekst.small, color = k.muted)
+            Text("Log in with your planner account (Reply › settings) for your tasks, blocks and habits.", style = NHTekst.small, color = k.muted)
         }
 
         val zetAf: (PlannerData.Taak) -> Unit = { t ->
@@ -150,8 +150,8 @@ fun PlannerScherm() {
         }
 
         when (weergave) {
-            "lijst" -> Venster("agenda.exe", "予定", zonderRand = true) {
-                // Twee weken vanaf de gekozen dag, één blok per dag
+            "list" -> Venster("agenda.exe", "予定", zonderRand = true) {
+                // Two weeks from the chosen day, one block per day
                 var eerste = true
                 (0 until 14).forEach { i ->
                     val d = dag.plusDays(i.toLong())
@@ -160,20 +160,20 @@ fun PlannerScherm() {
                     if (!eerste) Box(Modifier.fillMaxWidth().height(1.dp).background(k.line))
                     eerste = false
                     Text(
-                        (if (d == vandaag) "vandaag · " else "") + "${listOf("ma", "di", "wo", "do", "vr", "za", "zo")[d.dayOfWeek.value - 1]} ${d.dayOfMonth}",
+                        (if (d == vandaag) "today · " else "") + "${listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[d.dayOfWeek.value - 1]} ${d.dayOfMonth}",
                         style = NHTekst.label, color = k.muted, modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 2.dp),
                     )
-                    if (lijst.isEmpty()) Text("Niks gepland.", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    if (lijst.isEmpty()) Text("Nothing planned.", style = NHTekst.small, color = k.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                     lijst.forEachIndexed { j, it -> if (j > 0) Scheiding(); LijstRij(it, zetAf) }
                 }
             }
-            "dag" -> Venster("dag.exe", "一日", zonderRand = true) { Tijdlijn(itemsOp(dag), dag, zetAf) }
+            "day" -> Venster("day.exe", "一日", zonderRand = true) { Tijdlijn(itemsOp(dag), dag, zetAf) }
             else -> Venster("week.exe", "予定", zonderRand = true) { Week(ma) { d -> itemsOp(d) } }
         }
 
-        // ---- Gewoontes ----
+        // ---- Habits ----
         planner?.gewoontes?.takeIf { it.isNotEmpty() }?.let { lijst ->
-            Venster("gewoontes.exe", "習慣", zonderRand = true) {
+            Venster("habits.exe", "習慣", zonderRand = true) {
                 lijst.forEachIndexed { i, g ->
                     if (i > 0) Scheiding()
                     Row(
@@ -186,25 +186,25 @@ fun PlannerScherm() {
                         Vakje(g.vandaag)
                         Spacer(Modifier.width(12.dp))
                         Text(g.naam, style = NHTekst.body.copy(textDecoration = if (g.vandaag) TextDecoration.LineThrough else null), color = if (g.vandaag) k.muted else k.ink, modifier = Modifier.weight(1f))
-                        if (g.reeks >= 2) Text("${g.reeks} dagen", style = NHTekst.label, color = k.muted)
+                        if (g.reeks >= 2) Text("${g.reeks} days", style = NHTekst.label, color = k.muted)
                     }
                 }
             }
         }
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Knop("Planner op de website") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/planner/"))) }
+            Knop("Planner on the website") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nbroers05.github.io/Dashboard/planner/"))) }
         }
         Spacer(Modifier.height(8.dp))
     }
 }
 
-// Regencheck onder een appie-dienst: vertrek (25 min ervoor), halverwege en einde
+// Rain check under an appie shift: leaving (25 min before), halfway and end
 private fun vertrekZin(a: Afspraak, w: Weer?): String {
     val vertrek = a.start - 25 * 60000
     val midden = a.start + (a.eind - a.start) / 2
     val delen = listOf(vertrek, midden, a.eind).mapIndexedNotNull { i, t ->
-        WeerBron.opMoment(w, t)?.let { "${if (i == 0) "vertrek " else ""}${Tijd.uur(t)} $it" }
+        WeerBron.opMoment(w, t)?.let { "${if (i == 0) "leave " else ""}${Tijd.uur(t)} $it" }
     }
     return if (delen.isEmpty()) "${Tijd.uur(a.start)} - ${Tijd.uur(a.eind)}" else delen.joinToString(" · ")
 }
@@ -251,7 +251,7 @@ private fun LijstRij(it: Item, zetAf: (PlannerData.Taak) -> Unit) {
     }
 }
 
-// ---------- Dag: tijdlijn (Standaardweek-blokken gestippeld, nu-lijn rood) ----------
+// ---------- Day: timeline (Standard week blocks dotted, now line red) ----------
 @Composable
 private fun Tijdlijn(items: List<Item>, dag: LocalDate, zetAf: (PlannerData.Taak) -> Unit) {
     val k = LocalNH.current
@@ -301,7 +301,7 @@ private fun Tijdlijn(items: List<Item>, dag: LocalDate, zetAf: (PlannerData.Taak
     }
 }
 
-// ---------- Week: zeven kolommen 08–24, alleen namen ----------
+// ---------- Week: seven columns 08–24, names only ----------
 @Composable
 private fun Week(ma: LocalDate, itemsOp: (LocalDate) -> List<Item>) {
     val k = LocalNH.current
@@ -318,7 +318,7 @@ private fun Week(ma: LocalDate, itemsOp: (LocalDate) -> List<Item>) {
             val isVandaag = d == LocalDate.now()
             Column(Modifier.weight(1f).border(0.5.dp, k.lineSoft)) {
                 Box(Modifier.fillMaxWidth().height(28.dp).background(if (isVandaag) k.eva else Color.Transparent), contentAlignment = Alignment.Center) {
-                    Text("${listOf("ma", "di", "wo", "do", "vr", "za", "zo")[i]} ${d.dayOfMonth}", style = NHTekst.label.copy(fontSize = 10.sp), color = if (isVandaag) k.onEva else k.muted)
+                    Text("${listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[i]} ${d.dayOfMonth}", style = NHTekst.label.copy(fontSize = 10.sp), color = if (isVandaag) k.onEva else k.muted)
                 }
                 Box(Modifier.fillMaxWidth().height(uur * (laatste - eerste)).background(if (isVandaag) k.sky.copy(alpha = 0.18f) else Color.Transparent)) {
                     itemsOp(d).filter { it.start != null }.forEach { it ->

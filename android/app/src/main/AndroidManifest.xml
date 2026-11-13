@@ -3,8 +3,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Vandaag: de agenda van de telefoon zelf (AH-diensten, colleges, Canvas-deadlines). Alleen lezen. -->
+    <!-- Today: the phone's own calendar (AH shifts, lectures, Canvas deadlines). Read-only. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Auto-update (since 0.8.0): open Android's installer for a newer release from GitHub -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="false"
@@ -24,7 +26,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Leest chatmeldingen (Nog reageren) en geeft toegang tot wat er speelt (mediasessies) -->
+        <!-- Reads chat notifications (Still to reply) and gives access to what's playing (media sessions) -->
         <service
             android:name=".ReplyListener"
             android:exported="true"
@@ -34,5 +36,15 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Hands the downloaded update to the installer (res/xml/file_paths.xml) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

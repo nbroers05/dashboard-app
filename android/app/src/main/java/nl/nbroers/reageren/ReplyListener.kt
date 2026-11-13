@@ -51,7 +51,7 @@ class ReplyListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         sbn ?: return
         val chat = parse(sbn)
-        Diag.add(this, "melding", sbn, if (chat != null) "regel" else "overgeslagen")
+        Diag.add(this, "posted", sbn, if (chat != null) "row" else "skipped")
         chat ?: return
         // Sommige apps halen een melding weg en zetten hem meteen terug: dan is er niet gereageerd
         pending.remove(chat.key)?.let { main.removeCallbacks(it) }
@@ -62,7 +62,7 @@ class ReplyListener : NotificationListenerService() {
         sbn ?: return
         val chat = parse(sbn)
         val answered = reason == REASON_CLICK || reason == REASON_APP_CANCEL || reason == REASON_APP_CANCEL_ALL
-        Diag.add(this, "weg:${reasonName(reason)}", sbn, if (chat != null && answered) "gereageerd" else "blijft")
+        Diag.add(this, "removed:${reasonName(reason)}", sbn, if (chat != null && answered) "replied" else "stays")
         if (chat == null || !answered) return
         pending.remove(chat.key)?.let { main.removeCallbacks(it) }
         val delete = Runnable {
@@ -162,7 +162,7 @@ class ReplyListener : NotificationListenerService() {
     }
 }
 
-/** Laatste gebeurtenissen om te kunnen zien wat er misgaat. Zonder namen en zonder tekst. */
+/** Latest events, to see what goes wrong. Without names and without text. */
 object Diag {
     private const val KEY = "diag"
     private const val MAX = 40
@@ -172,12 +172,12 @@ object Diag {
         val label = CHAT_APPS.firstOrNull { it.pkg == sbn.packageName }?.label ?: return
         val n = sbn.notification
         val time = SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date())
-        val samenvatting = if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) " samenvatting" else ""
+        val samenvatting = if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) " summary" else ""
         val line = "$time $label $what [${n.category ?: "-"}$samenvatting] $outcome"
         val prefs = Prefs(context)
         val lines = (prefs.get(KEY)?.split("\n") ?: emptyList())
         prefs.put(KEY, (listOf(line) + lines).take(MAX).joinToString("\n"))
     }
 
-    fun read(context: Context): String = Prefs(context).get(KEY) ?: "Nog niets."
+    fun read(context: Context): String = Prefs(context).get(KEY) ?: "Nothing yet."
 }
