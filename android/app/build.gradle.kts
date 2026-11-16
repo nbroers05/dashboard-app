@@ -12,8 +12,8 @@ android {
         applicationId = "nl.nbroers.reageren"
         minSdk = 29
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.8.0"
+        versionCode = 10
+        versionName = "0.9.0"
     }
 
     // The key is only stored as a secret on GitHub. Always the same key, otherwise a new version can't be installed over the old one.

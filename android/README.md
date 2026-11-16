@@ -44,6 +44,7 @@ Reply › settings › **notifications.exe** shows what happened to each notific
 
 | Version | What |
 |---|---|
+| 0.9.0 | Live to-do: the list (and the count on Today) refreshes every 3 seconds while the app is open, and a change on the phone pings the dashboard so it shows there within a second or two (dashboard 1.10.0). |
 | 0.8.0 | English screen text. Reads `_phone.status` and `_phone.wage` (English wage fields; the old Dutch keys as fallback). Auto-update: checks GitHub for a newer `telefoon-v…` release on start and from Settings, downloads it and opens Android's installer. |
 | 0.7.1 | Planner closed the app as soon as something without a time was in the list (all-day event or task without a time): fixed. New: crash log under Reply › settings (crash.exe), to pass on if the app ever closes. |
 | 0.7.0 | **Phase D**: the Planner tab like the mockup (list, day, week, day strip, rain check, deadlines, habits). With that all five tabs exist. |

@@ -26,13 +26,17 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.nbroers.reageren.ui.*
@@ -134,6 +138,39 @@ internal fun rememberGedeeld(nu: Long): Pair<Gedeeld?, (Gedeeld) -> Unit> {
     return g to { g = it }
 }
 
+/**
+ * The to-do, live: asked every 3 seconds while the app is on screen (stops in the background), so a change on the
+ * dashboard shows up here within a few seconds. Own changes are shown at once and written right away; an answer that
+ * was asked for before (or during) our own write is ignored, so it can't undo what you just did.
+ */
+@Composable
+internal fun rememberTodo(): Pair<JSONArray?, (JSONArray) -> Unit> {
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val scope = rememberCoroutineScope()
+    var lijst by remember { mutableStateOf<JSONArray?>(null) }
+    val stand = remember { longArrayOf(0L, 0L) }   // [0] = writes still on their way, [1] = when the last write finished
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                val gevraagd = System.currentTimeMillis()
+                val r = withContext(Dispatchers.IO) { try { Dash.haalTodo(context) } catch (e: Exception) { null } }
+                if (r != null && stand[0] == 0L && stand[1] < gevraagd && r.toString() != lijst?.toString()) lijst = r
+                delay(3000)
+            }
+        }
+    }
+    return lijst to { a ->
+        lijst = a
+        stand[0]++
+        scope.launch {
+            withContext(Dispatchers.IO) { try { Dash.zetTodo(context, a) } catch (e: Exception) { } }
+            stand[0]--
+            stand[1] = System.currentTimeMillis()
+        }
+    }
+}
+
 private fun groet(): String {
     val h = LocalTime.now().hour
     return when { h < 6 -> "Good night"; h < 12 -> "Good morning"; h < 18 -> "Good afternoon"; else -> "Good evening" }
@@ -165,6 +202,7 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
         wachten = withContext(Dispatchers.IO) { try { Reageren.lijst(context)?.size } catch (e: Exception) { null } }
     }
     val (gedeeld, zetGedeeld) = rememberGedeeld(nu)
+    val (todo, _) = rememberTodo()
     val gekoppeld = remember(wakker) { Dash.gekoppeld(context) }
 
     val dagStart = Agenda.dagStart(vandaag)
@@ -277,7 +315,7 @@ fun VandaagScherm(naar: (Int) -> Unit, naarTodo: () -> Unit, naarInstellingen: (
         // ---- to-do.exe + check-in.exe ----
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
             Venster("to-do.exe", "用事", Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClick = naarTodo)) {
-                Text(if (gedeeld == null) "–" else "${gedeeld.todoOpen}", style = NHTekst.getal, color = k.ink)
+                Text(if (todo == null) "–" else "${(0 until todo.length()).count { !todo.getJSONObject(it).optBoolean("done") }}", style = NHTekst.getal, color = k.ink)
                 Text("open · tap to see", style = NHTekst.small, color = k.muted)
             }
             Venster("check-in.exe", "気分", Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button) { naar(DATA) }) {
@@ -324,16 +362,8 @@ private fun openGmail(context: Context) {
 fun TodoScherm(onTerug: () -> Unit) {
     val context = LocalContext.current
     val k = LocalNH.current
-    val scope = rememberCoroutineScope()
-    val nu = minuut()
-    val (gedeeld, _) = rememberGedeeld(nu)
-    var lijst by remember { mutableStateOf<JSONArray?>(null) }
-    LaunchedEffect(gedeeld) { if (lijst == null && gedeeld != null) lijst = gedeeld.todo ?: JSONArray() }
+    val (lijst, bewaar) = rememberTodo()
     var nieuw by remember { mutableStateOf("") }
-    fun bewaar(a: JSONArray) {
-        lijst = a
-        scope.launch(Dispatchers.IO) { try { Dash.zetTodo(context, a) } catch (e: Exception) { } }
-    }
 
     Scherm {
         Kop("to-do", "Chores") {

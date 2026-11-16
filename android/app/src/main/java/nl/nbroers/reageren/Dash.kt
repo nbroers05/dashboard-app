@@ -123,13 +123,33 @@ object Dash {
         rest(context, "POST", "dashboard_canvas_done?on_conflict=user_id,item_id", JSONArray().put(row).toString(), "resolution=merge-duplicates,return=minimal")
     }
 
-    /** Write the whole to-do list (like sync.js: whole list, newest wins). */
+    /** Only the to-do list, for the live view (asked every few seconds while the app is on screen). null = not linked. */
+    @Throws(IOException::class)
+    fun haalTodo(context: Context): JSONArray? {
+        if (!gekoppeld(context)) return null
+        return try {
+            val rows = JSONArray(rest(context, "GET", "dashboard_settings?select=value&key=eq.todo.items"))
+            if (rows.length() == 0) JSONArray() else rows.getJSONObject(0).optJSONArray("value") ?: JSONArray()
+        } catch (e: NeedLogin) {
+            null
+        }
+    }
+
+    /** Write the whole to-do list (like sync.js: whole list, newest wins), then ping the dashboard so it updates at once. */
     @Throws(IOException::class, NeedLogin::class)
     fun zetTodo(context: Context, items: JSONArray) {
-        token(context)
+        val t = token(context)
         val row = JSONObject().put("user_id", userId).put("key", "todo.items").put("value", items)
             .put("updated_at", java.time.Instant.now().toString())
         rest(context, "POST", "dashboard_settings?on_conflict=user_id,key", JSONArray().put(row).toString(), "resolution=merge-duplicates,return=minimal")
+        // Supabase Realtime broadcast (same channel as sync.js since dashboard 1.10.0). Only a ping, no data; if it fails the
+        // dashboard still picks the change up on its next round.
+        try {
+            val msg = JSONObject().put("topic", "dash-sync-$userId").put("event", "changed")
+                .put("payload", JSONObject().put("keys", JSONArray().put("todo.items")).put("from", "phone"))
+            Supabase.call("POST", "$URL/realtime/v1/api/broadcast", mapOf("apikey" to KEY, "Authorization" to "Bearer $t"),
+                JSONObject().put("messages", JSONArray().put(msg)).toString())
+        } catch (e: IOException) { }
     }
 }
 
